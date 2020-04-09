@@ -519,3 +519,8 @@ config ARMSSE_CPUID
 
 config ARMSSE_MHU
     bool
+
+config VIRT_CORTEX_M
+    bool
+    select ARM_V7M
+    select UNIMP
