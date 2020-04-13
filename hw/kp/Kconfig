@@ -1,0 +1,3 @@
+config KP_MEM_FILE
+    bool
+    default y
