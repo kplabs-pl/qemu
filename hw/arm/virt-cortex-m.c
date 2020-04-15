@@ -69,7 +69,7 @@ static void virt_cortex_m_init(MachineState *ms)
     clock_set_hz(m->cpuclk, m->freq_mhz * 1000 * 1000);
 
     nvic = qdev_new(TYPE_ARMV7M);
-    
+    qemu_log("NVIC (board_init): %p\n", nvic);
     qdev_prop_set_uint32(nvic, "num-irq", m->num_irq);
     qdev_prop_set_string(nvic, "cpu-type", ms->cpu_type);
     qdev_prop_set_bit(nvic, "enable-bitband", true);
