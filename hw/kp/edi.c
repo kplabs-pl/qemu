@@ -5,16 +5,23 @@
 #include "qemu/log.h"
 #include "hw/core/cpu.h"
 #include "exec/memory.h"
+#include "hw/irq.h"
 #include "exec/address-spaces.h"
 #include <nanomsg/pair.h>
 #include <nanomsg/reqrep.h>
 #include <nanomsg/pubsub.h>
 #include <nanomsg/pipeline.h>
+#include "target/arm/cpu-qom.h"
+#include "target/arm/cpu.h"
+#include "hw/intc/armv7m_nvic.h"
+#include "hw/sysbus.h"
+#include "qapi/error.h"
 
 typedef struct KPEDIState {
     DeviceState parent_obj;
 
     uint64_t addr;
+    qemu_irq irq;
 
     struct {
         uint32_t command;
@@ -48,6 +55,49 @@ static uint64_t kp_edi_register_read(void *opaque, hwaddr addr, unsigned size)
     }
 }
 
+
+static void trigger_irq(KPEDIState* s)
+{
+    qemu_log("EDI: triggering irq %d\n", s->registers.interrupt);
+   
+    if(s->irq != NULL) 
+    {
+        qemu_irq_raise(s->irq);
+    }
+}
+
+static void clear_irq(KPEDIState* s)
+{
+    qemu_log("EDI: clearing irq %d\n", s->registers.interrupt);
+   
+    if(s->irq != NULL) 
+    {
+        qemu_irq_lower(s->irq);
+    }
+}
+
+static void set_irq(KPEDIState* s)
+{
+    if(s->registers.interrupt == 0)
+    {
+        qemu_irq_lower(s->irq);
+        s->irq = NULL;
+    }
+    else 
+    {
+        ARMCPU *cpu = ARM_CPU(first_cpu);
+        NVICState* nvic = (NVICState*)cpu->env.nvic;
+        
+        gchar *propname = g_strdup_printf("unnamed-gpio-in[%u]", s->registers.interrupt);
+
+        Object* irqObj = object_property_get_link(OBJECT(nvic), propname, &error_abort);
+
+        g_free(propname);
+
+        s->irq = (qemu_irq)irqObj;
+    }
+}
+
 static void kp_edi_register_write(void *opaque, hwaddr addr, uint64_t data, unsigned size)
 {
     KPEDIState *s = (KPEDIState*)opaque;
@@ -56,6 +106,14 @@ static void kp_edi_register_write(void *opaque, hwaddr addr, uint64_t data, unsi
     {
         case 0x00:
             s->registers.command = (uint32_t)data;
+            if(data == 0x12)
+            {
+                trigger_irq(s);
+            }
+            if(data == 0x13)
+            {
+                clear_irq(s);
+            }
             break;
         case 0x04:
             s->registers.pointer = (uint32_t)data;
@@ -65,6 +123,7 @@ static void kp_edi_register_write(void *opaque, hwaddr addr, uint64_t data, unsi
             break;
         case 0x0C:
             s->registers.interrupt = (uint32_t)data;
+            set_irq(s);
             break;
         default:
             qemu_log("EDI: write invalid register %lX\n", addr);
@@ -84,6 +143,8 @@ static const MemoryRegionOps RegisterOps = {
 static void kp_edi_realize(DeviceState* dev, Error** errp)
 {
     KPEDIState *s = KP_EDI(dev);
+
+    s->irq = NULL;
 
     MemoryRegion *system_memory = get_system_memory();
 
