@@ -403,6 +403,8 @@ if targetos == 'linux' and (have_system or have_tools)
                        static: enable_static)
 endif
 
+nanomsg = dependency('nanomsg', required: true, method: 'pkg-config', static: enable_static)
+
 mpathlibs = [libudev]
 mpathpersist = not_found
 mpathpersist_new_api = false
@@ -1782,6 +1784,7 @@ foreach target : target_dirs
     t = target_softmmu_arch[arch].apply(config_target, strict: false)
     arch_srcs += t.sources()
     arch_deps += t.dependencies()
+    arch_deps += [nanomsg]
 
     hw_dir = target_name == 'sparc64' ? 'sparc64' : arch
     hw = hw_arch[hw_dir].apply(config_target, strict: false)

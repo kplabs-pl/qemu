@@ -1,3 +1,7 @@
 config KP_MEM_FILE
     bool
     default y
+
+config KP_EDI
+    bool
+    default y
