@@ -17,10 +17,13 @@
 #include "hw/sysbus.h"
 #include "qapi/error.h"
 #include "hw/kp/edi.h"
+#include "trace.h"
 
 static uint64_t kp_edi_register_read(void *opaque, hwaddr addr, unsigned size)
 {
     KPEDIState *s = (KPEDIState*)opaque;
+
+    trace_kp_edi_reg_read(s->addr, addr);
 
     switch(addr)
     {
@@ -87,6 +90,8 @@ static void kp_edi_register_write(void *opaque, hwaddr addr, uint64_t data, unsi
 {
     KPEDIState *s = (KPEDIState*)opaque;
 
+    trace_kp_edi_reg_write(s->addr, addr, data);
+
     switch(addr)
     {
         case 0x00:
@@ -134,6 +139,8 @@ static const MemoryRegionOps RegisterOps = {
 static void kp_edi_realize(DeviceState* dev, Error** errp)
 {
     KPEDIState *s = KP_EDI(dev);
+
+    trace_kp_edi_realize(s->addr);
 
     s->irq = NULL;
 

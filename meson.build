@@ -2885,6 +2885,7 @@ if have_system
     'hw/block/dataplane',
     'hw/char',
     'hw/display',
+    'hw/kp',
     'hw/dma',
     'hw/hyperv',
     'hw/i2c',
