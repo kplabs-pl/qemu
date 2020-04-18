@@ -49,11 +49,6 @@ static void virt_cortex_m_init(MachineState *ms)
     MemoryRegion *flash = g_new(MemoryRegion, 1);
     MemoryRegion *system_memory = get_system_memory();
 
-    qemu_log("RAM size: %ld\n", m->parent_obj.ram_size);
-    qemu_log("Flash size: %ld KB\n", m->flash_size_kb);
-    qemu_log("Freq %ldMHz\n", m->freq_mhz);
-    qemu_log("Num irq %ld\n", m->num_irq);
-
     flash_size = m->flash_size_kb * 1024;
     sram_size = m->parent_obj.ram_size;
 
@@ -70,6 +65,7 @@ static void virt_cortex_m_init(MachineState *ms)
 
     nvic = qdev_new(TYPE_ARMV7M);
     qemu_log("NVIC (board_init): %p\n", nvic);
+
     qdev_prop_set_uint32(nvic, "num-irq", m->num_irq);
     qdev_prop_set_string(nvic, "cpu-type", ms->cpu_type);
     qdev_prop_set_bit(nvic, "enable-bitband", true);
