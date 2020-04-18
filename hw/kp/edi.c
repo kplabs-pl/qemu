@@ -18,6 +18,8 @@
 #include "qapi/error.h"
 #include "hw/kp/edi.h"
 #include "trace.h"
+#include "edi-commands.h"
+#include "edi-list.h"
 
 static uint64_t kp_edi_register_read(void *opaque, hwaddr addr, unsigned size)
 {
@@ -50,25 +52,14 @@ static void trigger_irq(KPEDIState* s)
    
     if(s->irq != NULL) 
     {
-        qemu_irq_raise(s->irq);
-    }
-}
-
-static void clear_irq(KPEDIState* s)
-{
-    qemu_log("EDI: clearing irq %d\n", s->registers.interrupt);
-   
-    if(s->irq != NULL) 
-    {
-        qemu_irq_lower(s->irq);
+        qemu_irq_pulse(s->irq);
     }
 }
 
 static void set_irq(KPEDIState* s)
 {
-    if(s->registers.interrupt == 0)
+    if(s->registers.interrupt == UINT32_MAX)
     {
-        qemu_irq_lower(s->irq);
         s->irq = NULL;
     }
     else 
@@ -95,15 +86,7 @@ static void kp_edi_register_write(void *opaque, hwaddr addr, uint64_t data, unsi
     switch(addr)
     {
         case 0x00:
-            s->registers.command = (uint32_t)data;
-            if(data == 0x12)
-            {
-                trigger_irq(s);
-            }
-            if(data == 0x13)
-            {
-                clear_irq(s);
-            }
+            s->registers.command = kp_edi_handle_command(s, data);
             break;
         case 0x04:
             s->registers.pointer = (uint32_t)data;
@@ -129,6 +112,15 @@ static void kp_edi_init(Object* obj)
 {
     KPEDIState *s = KP_EDI(obj);
     s->registers.id = 0xDEADCAFE;
+    s->trigger_irq = trigger_irq;
+
+    s->connection_state = edi_connection_state_disconnected;
+    s->socket = -1;
+    s->communication_mode = edi_mode_pair;
+    s->socket_read_handle = 0;
+    s->socket_write_handle = 0;
+    kp_edi_chunk_list_init(&s->receive_list);
+    kp_edi_chunk_list_init(&s->send_list);
 }
 
 static const MemoryRegionOps RegisterOps = {
@@ -143,6 +135,7 @@ static void kp_edi_realize(DeviceState* dev, Error** errp)
     trace_kp_edi_realize(s->addr);
 
     s->irq = NULL;
+    s->registers.interrupt = UINT32_MAX;
 
     MemoryRegion *system_memory = get_system_memory();
 

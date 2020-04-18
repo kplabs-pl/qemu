@@ -1,3 +1,22 @@
 kp_edi_realize(uint64_t address) "Base address 0x%" PRIX64
 kp_edi_reg_write(uint64_t baseAddress, uint8_t offset, uint32_t value) "Device(0x%" PRIX64 ") Write register(0x%02X) Value: 0x%" PRIX32
 kp_edi_reg_read(uint64_t baseAddress, uint32_t offset) "Device(0x%" PRIX64 ") Read register(0x%02X)"
+kp_edi_command(uint64_t baseAddress, const char* command) "Device(0x%" PRIX64 ") executing command %s"
+kp_edi_operation_completed(uint64_t baseAddress, const char* operation, const char* url) "Device(0x%" PRIX64 ") %s to '%s'"
+kp_edi_disconnected(uint64_t baseAddress) "Device(0x%" PRIX64 ") disconnected"
+kp_edi_ready_to_send_more(uint64_t baseAddress) "Device(0x%" PRIX64 ") is ready to send more messages"
+kp_edi_message_sent(uint64_t baseAddress, size_t count, size_t remainingMessages) "Device(0x%" PRIX64 ") sent %lu messages. Remaining %lu messages in queue"
+kp_edi_message_incoming(uint64_t baseAddress) "Device(0x%" PRIX64 ") incoming message detected"
+kp_edi_message_received(uint64_t baseAddress, size_t size, size_t inQueue) "Device(0x%" PRIX64 ") received message %zu bytes long. %zu messages in queue"
+kp_edi_message_remove_nothing(uint64_t baseAddress) "Device(0x%" PRIX64 ") nothing to remove from queue"
+kp_edi_message_removed(uint64_t baseAddress, size_t inQueue) "Device(0x%" PRIX64 ") Removed message from queue. Messages left: %zu"
+
+kp_edi_connection_type_set(uint64_t baseAddress, const char* mode) "Device(0x%" PRIX64 ") connection type set to '%s'"
+
+kp_edi_message_dropped(uint64_t baseAddress,  size_t queueLength, const char* status) "Device(0x%" PRIX64 ") Unable to send message. Outgoing queue length: %zu, status: '%s'"
+
+kp_edi_error_invalid_command(uint64_t baseAddress, uint32_t command) "Device(0x%" PRIX64 ") Invalid command 0x%02X"
+kp_edi_error_unable_to_map_address(uint64_t baseAddress, uint32_t mapAddress) "Device(0x%" PRIX64 ") Unable to map address 0x%" PRIX32
+kp_edi_error(uint64_t baseAddress, const char* error) "Device(0x%" PRIX64 ") Error: %s"
+
+
