@@ -16,24 +16,7 @@
 #include "hw/intc/armv7m_nvic.h"
 #include "hw/sysbus.h"
 #include "qapi/error.h"
-
-typedef struct KPEDIState {
-    DeviceState parent_obj;
-
-    uint64_t addr;
-    qemu_irq irq;
-
-    struct {
-        uint32_t command;
-        uint32_t pointer;
-        uint32_t size;
-        uint32_t interrupt;
-    } registers;
-} KPEDIState;
-
-#define TYPE_KP_EDI "kp-edi"
-#define KP_EDI(obj) OBJECT_CHECK(KPEDIState, (obj), \
-                                         TYPE_KP_EDI)
+#include "hw/kp/edi.h"
 
 static uint64_t kp_edi_register_read(void *opaque, hwaddr addr, unsigned size)
 {
@@ -49,6 +32,8 @@ static uint64_t kp_edi_register_read(void *opaque, hwaddr addr, unsigned size)
             return s->registers.size;
         case 0x0C:
             return s->registers.interrupt;
+        case 0x10:
+            return s->registers.id;
         default:
             qemu_log("EDI: read invalid register %lX\n", addr);
             return 0xDEADBEEF;
@@ -135,6 +120,12 @@ static void kp_edi_reset(DeviceState* dev)
     // TODO: reset
 }
 
+static void kp_edi_init(Object* obj)
+{
+    KPEDIState *s = KP_EDI(obj);
+    s->registers.id = 0xDEADCAFE;
+}
+
 static const MemoryRegionOps RegisterOps = {
     .read = kp_edi_register_read,
     .write = kp_edi_register_write,
@@ -150,12 +141,9 @@ static void kp_edi_realize(DeviceState* dev, Error** errp)
 
     MemoryRegion *region = g_new(MemoryRegion, 1);
 
-    memory_region_init_io(region, NULL, &RegisterOps, s, "kp-edi", 4 * 4);
+    memory_region_init_io(region, NULL, &RegisterOps, s, "kp-edi", KP_EDI_ADDRESS_SPACE_SIZE);
 
     memory_region_add_subregion(system_memory, s->addr, region);
-
-    qemu_log("EDI realize\n");
-
 }
 
 static Property kp_edi_props[] = {
@@ -180,7 +168,8 @@ static TypeInfo kp_edi_info = {
     .name = TYPE_KP_EDI,
     .parent = TYPE_DEVICE,
     .instance_size = sizeof(KPEDIState),
-    .class_init = kp_edi_class_init
+    .class_init = kp_edi_class_init,
+    .instance_init = kp_edi_init
 };
 
 static void kp_edi_register_type(void)
