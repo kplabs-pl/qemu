@@ -1,0 +1,23 @@
+pipeline {
+    agent none
+    options {
+        checkoutToSubdirectory 'src'
+        skipDefaultCheckout false
+    }
+    stages {
+        stage('Build') {
+            agent {
+                dockerfile {
+                    dir 'src/ci'
+                    label 'qemu-build'
+                }
+            }
+            steps {
+                dir('build-linux') {
+                    sh('../src/ci/configure-linux.sh ../src ../build-install')
+                    sh('make -j5')
+                }
+            }
+        }
+    }
+}
