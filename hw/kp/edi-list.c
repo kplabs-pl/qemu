@@ -15,14 +15,14 @@ static void cleanup_msg_chunk(kp_edi_message_chunk* chunk)
     }
 }
 
-kp_edi_message_chunk* create_message_chunk(void)
+kp_edi_message_chunk* kp_edi_create_message_chunk(void)
 {
     kp_edi_message_chunk* chunk = g_malloc(sizeof(kp_edi_message_chunk));
     init_msg_chunk(chunk);
     return chunk;
 }
 
-void destroy_message_chunk(kp_edi_message_chunk* chunk)
+void kp_edi_destroy_message_chunk(kp_edi_message_chunk* chunk)
 {
     cleanup_msg_chunk(chunk);
     g_free(chunk);
@@ -40,7 +40,7 @@ void kp_edi_chunk_list_clear(kp_edi_chunk_list* list)
     while(chunk != NULL)
     {
         kp_edi_message_chunk* next = chunk->list_entry.sqe_next;
-        destroy_message_chunk(chunk);
+        kp_edi_destroy_message_chunk(chunk);
         chunk = next;
     }
 

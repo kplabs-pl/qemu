@@ -10,32 +10,37 @@
 #include <nanomsg/pubsub.h>
 #include <nanomsg/pipeline.h>
 
+static inline size_t min_size_t(size_t left, size_t right)
+{
+    return left < right ? left : right;
+}
+
 static const size_t SendQueueLengthLimit = 128;
 
-static void edi_write_handler(void* device);
-static void edi_read_handler(void* device);
+static void write_handler(void* device);
+static void read_handler(void* device);
 
-static void edi_register_write_handle(KPEDIState* device)
+static void register_write_handle(KPEDIState* device)
 {
     aio_set_fd_handler(
         qemu_get_current_aio_context(),
         device->socket_write_handle,
         true,
         NULL,
-        edi_write_handler,
+        write_handler,
         NULL,
         NULL,
         device
         );
 }
 
-static void edi_register_read_handle(KPEDIState* device)
+static void register_read_handle(KPEDIState* device)
 {
     aio_set_fd_handler(
         qemu_get_current_aio_context(),
         device->socket_read_handle,
         true,
-        edi_read_handler,
+        read_handler,
         NULL,
         NULL,
         NULL,
@@ -43,20 +48,20 @@ static void edi_register_read_handle(KPEDIState* device)
         );
 }
 
-static void edi_unregister_write_handle(KPEDIState* device)
+static void unregister_write_handle(KPEDIState* device)
 {
     aio_set_fd_handler(qemu_get_current_aio_context(), device->socket_write_handle, true, NULL, NULL, NULL, NULL, NULL);
 }
 
-static void edi_unregister_read_handle(KPEDIState* device)
+static void unregister_read_handle(KPEDIState* device)
 {
     aio_set_fd_handler(qemu_get_current_aio_context(), device->socket_read_handle, true, NULL, NULL, NULL, NULL, NULL);
 }
 
-static void edi_write_handler(void* device)
+static void write_handler(void* device)
 {
     KPEDIState* state = KP_EDI((Object*)device);
-    trace_kp_edi_ready_to_send_more(state->addr);
+    trace_kp_edi_ready_to_send_more(state->name);
 
     int status = 0;
     size_t cx = 0;
@@ -66,9 +71,9 @@ static void edi_write_handler(void* device)
         status = nn_send(state->socket, &chunk->message, NN_MSG, NN_DONTWAIT);
         if(status != -1)
         {
-            trace_kp_edi_error(state->addr, "Send failed");
+            trace_kp_edi_error(state->name, "Send failed");
             chunk->message = NULL;
-            destroy_message_chunk(chunk);
+            kp_edi_destroy_message_chunk(chunk);
         }
         else
         {
@@ -76,40 +81,35 @@ static void edi_write_handler(void* device)
         }
     }
 
-    trace_kp_edi_message_sent(state->addr, cx, state->send_list.size);
+    trace_kp_edi_message_sent(state->name, cx, state->send_list.size);
 
     if(state->send_list.size == 0)
     {
-        edi_unregister_write_handle(state);
+        unregister_write_handle(state);
     }
 }
 
-static void edi_read_handler(void* device)
+static void read_handler(void* device)
 {
     KPEDIState* state = KP_EDI((Object*)device);
-    trace_kp_edi_message_incoming(state->addr);
+    trace_kp_edi_message_incoming(state->name);
     
-    kp_edi_message_chunk* chunk = create_message_chunk();
+    kp_edi_message_chunk* chunk = kp_edi_create_message_chunk();
     const int result = nn_recv(state->socket, &chunk->message, NN_MSG, NN_DONTWAIT);
     if(result == -1)
     {
         if(nn_errno() != EAGAIN)
         {
-            qemu_log_mask(
-            LOG_GUEST_ERROR,
-                "Device(0x%" PRIX64 ") is unable to receive message, reason: '%s'\n",
-                state->addr,
-                nn_strerror(nn_errno())
-                );
+            trace_kp_edi_error_reason(state->name, "unable to receive message", nn_strerror(nn_errno()));
         }
 
-        destroy_message_chunk(chunk);
+        kp_edi_destroy_message_chunk(chunk);
         return;
     }
 
     chunk->size = result;
     kp_edi_chunk_list_push_back(&state->receive_list, chunk);
-    trace_kp_edi_message_received(state->addr, chunk->size, state->receive_list.size);
+    trace_kp_edi_message_received(state->name, chunk->size, state->receive_list.size);
 
     state->trigger_irq(state);
 }
@@ -120,12 +120,7 @@ static bool get_socket_write_handle(KPEDIState* device, int socket, fd_handle_ty
     const bool status = nn_getsockopt(socket, NN_SOL_SOCKET, NN_SNDFD, handle, &size) == 0;
     if(!status)
     {
-        qemu_log_mask(
-            LOG_GUEST_ERROR,
-            "Device(0x%" PRIX64 ") Unable to access socket handle for writing, reason: '%s'\n",
-            device->addr,
-            nn_strerror(nn_errno())
-            );
+        trace_kp_edi_error_reason(device->name, "Unable to access socket handle for writing", nn_strerror(nn_errno()));
     }
 
     return status;
@@ -137,12 +132,7 @@ static bool get_socket_read_handle(KPEDIState* device, int socket, fd_handle_typ
     const bool status = nn_getsockopt(socket, NN_SOL_SOCKET, NN_RCVFD, handle, &size) == 0;
     if(!status)
     {
-        qemu_log_mask(
-            LOG_GUEST_ERROR,
-            "Device(0x%" PRIX64 ") Unable to access socket handle for reading, reason: '%s'\n",
-            device->addr,
-            nn_strerror(nn_errno())
-            );
+        trace_kp_edi_error_reason(device->name, "Unable to access socket handle for reading", nn_strerror(nn_errno()));
     }
 
     return status;
@@ -163,13 +153,13 @@ static const struct edi_communication_pair
     register_socket write_unregister;
 } communication_map[] =
 {
-    {NN_REQ, "req", get_socket_read_handle, get_socket_write_handle, edi_register_read_handle, edi_register_write_handle, edi_unregister_read_handle, edi_unregister_write_handle},
-    {NN_REP, "rep", get_socket_read_handle, get_socket_write_handle, edi_register_read_handle, edi_register_write_handle, edi_unregister_read_handle, edi_unregister_write_handle},
-    {NN_PAIR, "pair", get_socket_read_handle, get_socket_write_handle, edi_register_read_handle, edi_register_write_handle, edi_unregister_read_handle, edi_unregister_write_handle},
-    {NN_PULL, "pull", get_socket_read_handle, NULL, edi_register_read_handle, NULL, edi_unregister_read_handle, NULL},
-    {NN_PUSH, "push", NULL, get_socket_write_handle, NULL, edi_register_write_handle, NULL, edi_unregister_write_handle},
-    {NN_PUB, "pub", NULL, get_socket_write_handle, NULL, edi_register_write_handle, NULL, edi_unregister_write_handle},
-    {NN_SUB, "sub", get_socket_read_handle, NULL, edi_register_read_handle, NULL, edi_unregister_read_handle, NULL},
+    {NN_REQ, "req", get_socket_read_handle, get_socket_write_handle, register_read_handle, register_write_handle, unregister_read_handle, unregister_write_handle},
+    {NN_REP, "rep", get_socket_read_handle, get_socket_write_handle, register_read_handle, register_write_handle, unregister_read_handle, unregister_write_handle},
+    {NN_PAIR, "pair", get_socket_read_handle, get_socket_write_handle, register_read_handle, register_write_handle, unregister_read_handle, unregister_write_handle},
+    {NN_PULL, "pull", get_socket_read_handle, NULL, register_read_handle, NULL, unregister_read_handle, NULL},
+    {NN_PUSH, "push", NULL, get_socket_write_handle, NULL, register_write_handle, NULL, unregister_write_handle},
+    {NN_PUB, "pub", NULL, get_socket_write_handle, NULL, register_write_handle, NULL, unregister_write_handle},
+    {NN_SUB, "sub", get_socket_read_handle, NULL, register_read_handle, NULL, unregister_read_handle, NULL},
 };
 
 #define COMMUNICATION_MAP_SIZE (sizeof(communication_map) / sizeof(*communication_map))
@@ -187,13 +177,13 @@ static const struct edi_communication_pair* find_communication_mode(edi_communic
     }
 }
 
-static void edi_drop_outgoing_message(KPEDIState* device, void* message)
+static void drop_outgoing_message(KPEDIState* device, void* message)
 {
     nn_freemsg(message);
-    trace_kp_edi_message_dropped(device->addr, device->send_list.size, nn_strerror(nn_errno()));
+    trace_kp_edi_message_dropped(device->name, device->send_list.size, nn_strerror(nn_errno()));
 }
 
-static bool edi_enquene_outgoing_message(KPEDIState* device, void* message, size_t size)
+static bool enquene_outgoing_message(KPEDIState* device, void* message, size_t size)
 {
     const struct edi_communication_pair* mode = find_communication_mode(device->communication_mode);
     const bool status = device->send_list.size < SendQueueLengthLimit && mode->write_register != NULL;
@@ -204,7 +194,7 @@ static bool edi_enquene_outgoing_message(KPEDIState* device, void* message, size
             mode->write_register(device);
         }
 
-        kp_edi_message_chunk* chunk = create_message_chunk();
+        kp_edi_message_chunk* chunk = kp_edi_create_message_chunk();
         chunk->message = message;
         chunk->size = size;
         kp_edi_chunk_list_push_back(&device->send_list, chunk);
@@ -213,23 +203,23 @@ static bool edi_enquene_outgoing_message(KPEDIState* device, void* message, size
     return status;
 }
 
-static edi_status edi_send_message(KPEDIState* device, void* message, size_t size)
+static edi_status send_message(KPEDIState* device, void* message, size_t size)
 {
     if(kp_edi_chunk_list_empty(&device->send_list))
     {
         const int status = nn_send(device->socket, &message, NN_MSG, NN_DONTWAIT);
         if(
             status == -1 &&
-            (nn_errno() != EAGAIN || !edi_enquene_outgoing_message(device, message, size))
+            (nn_errno() != EAGAIN || !enquene_outgoing_message(device, message, size))
             )
         {
-            edi_drop_outgoing_message(device, message);
+            drop_outgoing_message(device, message);
             return edi_status_write_error;
         }
     }
-    else if(!edi_enquene_outgoing_message(device, message, size))
+    else if(!enquene_outgoing_message(device, message, size))
     {
-        edi_drop_outgoing_message(device, message);
+        drop_outgoing_message(device, message);
         return edi_status_write_error;
     }
 
@@ -237,7 +227,7 @@ static edi_status edi_send_message(KPEDIState* device, void* message, size_t siz
 }
 
 
-static edi_status edi_disconnect(KPEDIState* device)
+static edi_status disconnect(KPEDIState* device)
 {
     if(device->connection_state == edi_connection_state_disconnected)
     {
@@ -252,16 +242,11 @@ static edi_status edi_disconnect(KPEDIState* device)
         {
             if(nn_errno() != EINTR)
             {
-                qemu_log_mask(
-                    LOG_GUEST_ERROR,
-                    "Device(0x%" PRIX64 ") Unable to shutdown, reason: '%s'\n",
-                    device->addr,
-                    nn_strerror(nn_errno())
-                    );
+                trace_kp_edi_error_reason(device->name, "Unable to shutdown", nn_strerror(nn_errno()));
                 return edi_status_unable_to_setup_connection;
             }
 
-            qemu_log_mask(LOG_GUEST_ERROR, "Device(0x%" PRIX64 ") Unable to shutdown, retrying\n", device->addr);
+            trace_kp_edi_error(device->name, "Unable to shutdown, retrying");
         }
     }
     while(result == -1);
@@ -279,11 +264,11 @@ static edi_status edi_disconnect(KPEDIState* device)
         mode->write_unregister(device);
     }
 
-    trace_kp_edi_disconnected(device->addr);
+    trace_kp_edi_disconnected(device->name);
     return edi_status_success;
 }
 
-static edi_status edi_establish_connection_internal(
+static edi_status establish_connection_internal(
     KPEDIState* device,
     void* buffer,
     size_t size,
@@ -295,12 +280,7 @@ static edi_status edi_establish_connection_internal(
     size_t string_size = strnlen(buffer, size);
     if(string_size == size)
     {
-        qemu_log_mask(
-            LOG_GUEST_ERROR,
-            "Device(0x%" PRIX64 ") Unable to connect. Address is not null terminated within specified length:%zu\n",
-            device->addr,
-            size
-            );
+        trace_kp_edi_error(device->name, "Unable to connect. Address is not null terminated within specified length");
         return edi_status_invalid_block_size;
     }
 
@@ -308,12 +288,7 @@ static edi_status edi_establish_connection_internal(
     int socket = nn_socket(AF_SP, mode->nanomsg_type);
     if(socket < 0)
     {
-        qemu_log_mask(
-            LOG_GUEST_ERROR,
-            "Device(0x%" PRIX64 ") Unable to create socket, reason: '%s'\n",
-            device->addr,
-            nn_strerror(nn_errno())
-            );
+        trace_kp_edi_error_reason(device->name, "Unable to create socket", nn_strerror(nn_errno()));
         return edi_status_unable_to_setup_connection;
     }
 
@@ -323,14 +298,7 @@ static edi_status edi_establish_connection_internal(
         const int endpoint_id = operation(socket, buffer);
         if(endpoint_id < 0)
         {
-            qemu_log_mask(
-                LOG_GUEST_ERROR,
-                "Device(0x%" PRIX64 ") is unable to %s to: %s, reason: '%s'",
-                device->addr,
-                operation_name,
-                (char*)buffer,
-                nn_strerror(nn_errno())
-                );
+            trace_kp_edi_error_operation(device->name, operation_name, (char*)buffer, nn_strerror(nn_errno()));
 
             status =  edi_status_unable_to_setup_connection;
             break;
@@ -359,7 +327,7 @@ static edi_status edi_establish_connection_internal(
 
         if(device->connection_state == edi_connection_state_connected)
         {
-            status = edi_disconnect(device);
+            status = disconnect(device);
             if(status != edi_status_success)
             {
                 break;
@@ -376,7 +344,7 @@ static edi_status edi_establish_connection_internal(
             mode->read_register(device);
         }
 
-        trace_kp_edi_operation_completed(device->addr, operation_completed_name, (const char*)buffer);
+        trace_kp_edi_operation_completed(device->name, operation_completed_name, (const char*)buffer);
 
         status = edi_status_success;
     }
@@ -392,31 +360,31 @@ static edi_status edi_establish_connection_internal(
 
 static edi_status edi_connect(KPEDIState* device, void* buffer, size_t size)
 {
-    return edi_establish_connection_internal(device, buffer, size, nn_connect, "connect", "connected");
+    return establish_connection_internal(device, buffer, size, nn_connect, "connect", "connected");
 }
 
 static edi_status edi_bind(KPEDIState* device, void* buffer, size_t size)
 {
-    return edi_establish_connection_internal(device, buffer, size, nn_bind, "bind", "bound");
+    return establish_connection_internal(device, buffer, size, nn_bind, "bind", "bound");
 }
 
-static edi_status edi_write_request(KPEDIState* device, void* buffer, size_t size)
+static edi_status write_request(KPEDIState* device, void* buffer, size_t size)
 {
     if(device->connection_state != edi_connection_state_connected)
     {
-        trace_kp_edi_error(device->addr, "Unable to write message. Device is disconnected");
+        trace_kp_edi_error(device->name, "Unable to write message. Device is disconnected");
         return edi_status_disconnected;
     }
 
     void* message_buffer = nn_allocmsg(size, 0);
     if(message_buffer == NULL)
     {
-        trace_kp_edi_error(device->addr, "Unable to send message due to allocation failure");
+        trace_kp_edi_error(device->name, "Unable to send message due to allocation failure");
         return edi_status_write_error;
     }
 
     memcpy(message_buffer, buffer, size);
-    return edi_send_message(device, message_buffer, size);
+    return send_message(device, message_buffer, size);
 }
 
 static uint32_t edi_calculate_gather_size(const edi_message_part* list, uint32_t size)
@@ -432,7 +400,7 @@ static uint32_t edi_calculate_gather_size(const edi_message_part* list, uint32_t
     return total_size;
 }
 
-static bool edi_gather_message(KPEDIState* device, const edi_message_part* list, uint32_t size, uint8_t* buffer)
+static bool gather_message(KPEDIState* device, const edi_message_part* list, uint32_t size, uint8_t* buffer)
 {
     uint32_t offset = 0;
     for(int counter = 0; counter < size; ++counter)
@@ -447,7 +415,7 @@ static bool edi_gather_message(KPEDIState* device, const edi_message_part* list,
         void* mapped_buffer = cpu_physical_memory_map((hwaddr)entry->buffer, &requested_size, false);
         if(mapped_buffer == NULL)
         {
-            qemu_log_mask(LOG_GUEST_ERROR, "Device(0x%" PRIX64 ") Unable to map message part at index: %d\n", device->addr, counter);
+            trace_kp_edi_error_map_message_part(device->name, counter);
             return false;
         }
 
@@ -459,7 +427,7 @@ static bool edi_gather_message(KPEDIState* device, const edi_message_part* list,
     return true;
 }
 
-static edi_status edi_handle_gather_write(KPEDIState* device, void* buffer, size_t size)
+static edi_status handle_gather_write(KPEDIState* device, void* buffer, size_t size)
 {
     if(device->connection_state != edi_connection_state_connected)
     {
@@ -472,21 +440,21 @@ static edi_status edi_handle_gather_write(KPEDIState* device, void* buffer, size
     void* message_buffer = nn_allocmsg(buffer_size, 0);
     if(message_buffer == NULL)
     {
-        qemu_log_mask(LOG_GUEST_ERROR, "Device(0x%" PRIX64 ") Unable to send message due to allocation failure\n", device->addr);
+        trace_kp_edi_error(device->name, "Unable to send message due to allocation failure");
         return edi_status_write_error;
     }
 
-    if(!edi_gather_message(device, part_list, part_list_length, message_buffer))
+    if(!gather_message(device, part_list, part_list_length, message_buffer))
     {
         nn_freemsg(message_buffer);
-        qemu_log_mask(LOG_GUEST_ERROR, "Device(0x%" PRIX64 ") Unable to gather all message parts\n", device->addr);
+        trace_kp_edi_error(device->name, "Unable to gather all message parts");
         return edi_status_invalid_address;
     }
 
-    return edi_send_message(device, message_buffer, buffer_size);
+    return send_message(device, message_buffer, buffer_size);
 }
 
-static edi_status edi_read_request(KPEDIState* device, void* buffer, size_t size)
+static edi_status read_request(KPEDIState* device, void* buffer, size_t size)
 {
     kp_edi_message_chunk* chunk = kp_edi_chunk_list_front(&device->receive_list);
     if(chunk == NULL)
@@ -502,7 +470,7 @@ static edi_status edi_read_request(KPEDIState* device, void* buffer, size_t size
     return edi_status_success;
 }
 
-static edi_status edi_handle_scatter_read(KPEDIState* device, void* buffer, size_t size)
+static edi_status handle_scatter_read(KPEDIState* device, void* buffer, size_t size)
 {
     kp_edi_message_chunk* chunk = kp_edi_chunk_list_front(&device->receive_list);
     if(chunk == NULL)
@@ -530,7 +498,7 @@ static edi_status edi_handle_scatter_read(KPEDIState* device, void* buffer, size
         void* mapped_buffer = cpu_physical_memory_map(entry->buffer, &requested_size, true);
         if(mapped_buffer == NULL)
         {
-            qemu_log_mask(LOG_GUEST_ERROR, "Device(0x%" PRIX64 ") Unable to map message part at index: %d\n", device->addr, counter);
+            trace_kp_edi_error_map_message_part(device->name, counter);
             result = edi_status_invalid_address;
             break;
         }
@@ -551,33 +519,27 @@ static edi_status edi_handle_scatter_read(KPEDIState* device, void* buffer, size
     return result;
 }
 
-static edi_status edi_handle_remove(KPEDIState* device)
+static edi_status handle_remove(KPEDIState* device)
 {
     kp_edi_message_chunk* chunk = kp_edi_chunk_list_pop_front(&device->receive_list);
     if(chunk == NULL)
     {
-        trace_kp_edi_message_remove_nothing(device->addr);
+        trace_kp_edi_message_remove_nothing(device->name);
     }
     else
     {
-        destroy_message_chunk(chunk);
-        trace_kp_edi_message_removed(device->addr, device->receive_list.size);
+        kp_edi_destroy_message_chunk(chunk);
+        trace_kp_edi_message_removed(device->name, device->receive_list.size);
     }
 
     return edi_status_success;
 }
 
-static edi_status edi_handle_connection_type(KPEDIState* device, void* buffer, size_t size)
+static edi_status handle_connection_type(KPEDIState* device, void* buffer, size_t size)
 {
     if(size != sizeof(int))
     {
-       qemu_log_mask(
-            LOG_GUEST_ERROR,
-                "Device(0x%" PRIX64 ") Invalid block size. Expected: %zu, got: %zu\n",
-            device->addr,
-            sizeof(int),
-            size
-            );
+        trace_kp_edi_error_invalid_block_size(device->name, sizeof(int), size);
         return edi_status_invalid_block_size;
     }
 
@@ -585,28 +547,23 @@ static edi_status edi_handle_connection_type(KPEDIState* device, void* buffer, s
     const struct edi_communication_pair* mode = find_communication_mode(input_mode);
     if(mode->nanomsg_type == -1)
     {
-        qemu_log_mask(
-            LOG_GUEST_ERROR,
-                "Device(0x%" PRIX64 ") Invalid connection mode: %d\n",
-            device->addr,
-            (int)input_mode
-            );
+        trace_kp_edi_error_invalid_connection_mode(device->name, (int)input_mode);
         return edi_status_invalid_communication_mode;
     }
 
     device->communication_mode = input_mode;
-    trace_kp_edi_connection_type_set(device->addr, mode->name);
+    trace_kp_edi_connection_type_set(device->name, mode->name);
 
     return edi_status_success;
 }
 
-static edi_status edi_handle_query_count(KPEDIState* device)
+static edi_status handle_query_count(KPEDIState* device)
 {
     device->registers.size = device->receive_list.size;
     return edi_status_success;
 }
 
-static edi_status edi_handle_query_size(KPEDIState* device)
+static edi_status handle_query_size(KPEDIState* device)
 {
     size_t size = 0;
     kp_edi_message_chunk* chunk = kp_edi_chunk_list_front(&device->receive_list);
@@ -662,7 +619,7 @@ static const char* map_command_code_to_string(edi_command command)
     }
 }
 
-static edi_status edi_handle_request_with_data(
+static edi_status handle_request_with_data(
     KPEDIState* device,
     bool is_writable,
     edi_status (*handler)(KPEDIState* state, void* buffer, size_t size)
@@ -677,7 +634,7 @@ static edi_status edi_handle_request_with_data(
         mapped_buffer = cpu_physical_memory_map(address, &requested_size, is_writable);
         if(mapped_buffer == NULL)
         {
-            trace_kp_edi_error_unable_to_map_address(device->addr, address);
+            trace_kp_edi_error_unable_to_map_address(device->name, address);
             return edi_status_invalid_address;
         }
     }
@@ -698,36 +655,36 @@ static edi_status edi_handle_request_with_data(
 
 edi_status kp_edi_handle_command(KPEDIState* state, edi_command command)
 {
-    trace_kp_edi_command(state->addr, map_command_code_to_string(command));
+    trace_kp_edi_command(state->name, map_command_code_to_string(command));
 
     switch((edi_command)command)
     {
     case edi_command_none:
         return edi_status_success;
     case edi_command_connect:
-        return edi_handle_request_with_data(state, false, edi_connect);
+        return handle_request_with_data(state, false, edi_connect);
     case edi_command_bind:
-        return edi_handle_request_with_data(state, false, edi_bind);
+        return handle_request_with_data(state, false, edi_bind);
     case edi_command_disconnect:
-        return edi_disconnect(state);
+        return disconnect(state);
     case edi_command_write:
-        return edi_handle_request_with_data(state, false, edi_write_request);
+        return handle_request_with_data(state, false, write_request);
     case edi_command_write_gather:
-        return edi_handle_request_with_data(state, false, edi_handle_gather_write);
+        return handle_request_with_data(state, false, handle_gather_write);
     case edi_command_read:
-        return edi_handle_request_with_data(state, true, edi_read_request);
+        return handle_request_with_data(state, true, read_request);
     case edi_command_read_scatter:
-        return edi_handle_request_with_data(state, true, edi_handle_scatter_read);
+        return handle_request_with_data(state, true, handle_scatter_read);
     case edi_command_query_message_count:
-        return edi_handle_query_count(state);
+        return handle_query_count(state);
     case edi_command_query_message_size:
-        return edi_handle_query_size(state);
+        return handle_query_size(state);
     case edi_command_remove_message:
-        return edi_handle_remove(state);
+        return handle_remove(state);
     case edi_command_set_connection_type:
-        return edi_handle_request_with_data(state, false, edi_handle_connection_type);
+        return handle_request_with_data(state, false, handle_connection_type);
     default:
-        trace_kp_edi_error_invalid_command(state->addr, command);
+        trace_kp_edi_error_invalid_command(state->name, command);
         return edi_status_invalid_command;
     }
 }

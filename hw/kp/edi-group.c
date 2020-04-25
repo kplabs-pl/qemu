@@ -11,6 +11,7 @@ typedef struct KPEDIGroupState {
 
     uint64_t addr;
     uint8_t count;
+    char* name;
 
     KPEDIState* children;
 } KPEDIGroupState;
@@ -30,9 +31,17 @@ static void kp_edi_group_realize(DeviceState *dev, Error **errp)
     KPEDIGroupState *s = KP_EDI_GROUP(dev);
     s->children = g_new(KPEDIState, s->count);
 
+    const char* nameFormat = s->name;
+
+    if (nameFormat == NULL)
+    {
+        nameFormat = "EDI%02d";
+    }
+
     for(uint8_t i = 0; i < s->count; i++)
     {
         gchar *name = g_strdup_printf("edi[%u]", i);
+        gchar *logName = g_strdup_printf(nameFormat, i);
 
         object_initialize_child(OBJECT(s), name, &s->children[i], TYPE_KP_EDI);
 
@@ -57,7 +66,8 @@ static void kp_edi_group_unrealize(DeviceState *dev)
 
 static Property kp_edi_group_props[] = {
     DEFINE_PROP_UINT64("addr", KPEDIGroupState, addr, 0xF0000010),
-    DEFINE_PROP_UINT8("count", KPEDIGroupState, count, 10),
+    DEFINE_PROP_UINT8("count", KPEDIGroupState, count, 20),
+    DEFINE_PROP_STRING("name", KPEDIGroupState, name),
     DEFINE_PROP_END_OF_LIST(),
 };
 

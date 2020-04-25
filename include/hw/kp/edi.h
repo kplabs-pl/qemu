@@ -40,6 +40,8 @@ typedef struct KPEDIState {
     DeviceState parent_obj;
 
     uint64_t addr;
+    char* name;
+
     qemu_irq irq;
 
     struct {

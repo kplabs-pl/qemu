@@ -1,22 +1,31 @@
-kp_edi_realize(uint64_t address) "Base address 0x%" PRIX64
-kp_edi_reg_write(uint64_t baseAddress, uint8_t offset, uint32_t value) "Device(0x%" PRIX64 ") Write register(0x%02X) Value: 0x%" PRIX32
-kp_edi_reg_read(uint64_t baseAddress, uint32_t offset) "Device(0x%" PRIX64 ") Read register(0x%02X)"
-kp_edi_command(uint64_t baseAddress, const char* command) "Device(0x%" PRIX64 ") executing command %s"
-kp_edi_operation_completed(uint64_t baseAddress, const char* operation, const char* url) "Device(0x%" PRIX64 ") %s to '%s'"
-kp_edi_disconnected(uint64_t baseAddress) "Device(0x%" PRIX64 ") disconnected"
-kp_edi_ready_to_send_more(uint64_t baseAddress) "Device(0x%" PRIX64 ") is ready to send more messages"
-kp_edi_message_sent(uint64_t baseAddress, size_t count, size_t remainingMessages) "Device(0x%" PRIX64 ") sent %zu messages. Remaining %zu messages in queue"
-kp_edi_message_incoming(uint64_t baseAddress) "Device(0x%" PRIX64 ") incoming message detected"
-kp_edi_message_received(uint64_t baseAddress, size_t size, size_t inQueue) "Device(0x%" PRIX64 ") received message %zu bytes long. %zu messages in queue"
-kp_edi_message_remove_nothing(uint64_t baseAddress) "Device(0x%" PRIX64 ") nothing to remove from queue"
-kp_edi_message_removed(uint64_t baseAddress, size_t inQueue) "Device(0x%" PRIX64 ") Removed message from queue. Messages left: %zu"
+kp_edi_realize(const char* name, uint64_t baseAddress) "[%s] Base address 0x%" PRIX64
+kp_edi_reg_write(const char* name, uint8_t offset, uint32_t value) "[%s] Write register(0x%02X) Value: 0x%" PRIX32
+kp_edi_reg_read(const char* name, uint32_t offset) "[%s] Read register(0x%02X)"
+kp_edi_command(const char* name, const char* command) "[%s] executing command %s"
+kp_edi_operation_completed(const char* name, const char* operation, const char* url) "[%s] %s to '%s'"
+kp_edi_disconnected(const char* name) "[%s] disconnected"
+kp_edi_ready_to_send_more(const char* name) "[%s] is ready to send more messages"
 
-kp_edi_connection_type_set(uint64_t baseAddress, const char* mode) "Device(0x%" PRIX64 ") connection type set to '%s'"
+kp_edi_message_sent(const char* name, size_t count, size_t remainingMessages) "[%s] sent %zu messages. Remaining %zu messages in queue"
+kp_edi_message_incoming(const char* name) "[%s] incoming message detected"
+kp_edi_message_received(const char* name, size_t size, size_t inQueue) "[%s] received message %zu bytes long. %zu messages in queue"
+kp_edi_message_remove_nothing(const char* name) "[%s] nothing to remove from queue"
+kp_edi_message_removed(const char* name, size_t inQueue) "[%s] Removed message from queue. Messages left: %zu"
 
-kp_edi_message_dropped(uint64_t baseAddress,  size_t queueLength, const char* status) "Device(0x%" PRIX64 ") Unable to send message. Outgoing queue length: %zu, status: '%s'"
+kp_edi_connection_type_set(const char* name, const char* mode) "[%s] connection type set to '%s'"
 
-kp_edi_error_invalid_command(uint64_t baseAddress, uint32_t command) "Device(0x%" PRIX64 ") Invalid command 0x%02X"
-kp_edi_error_unable_to_map_address(uint64_t baseAddress, uint32_t mapAddress) "Device(0x%" PRIX64 ") Unable to map address 0x%" PRIX32
-kp_edi_error(uint64_t baseAddress, const char* error) "Device(0x%" PRIX64 ") Error: %s"
+kp_edi_message_dropped(const char* name,  size_t queueLength, const char* status) "[%s] Unable to send message. Outgoing queue length: %zu, status: '%s'"
 
+kp_edi_error_invalid_command(const char* name, uint32_t command) "[%s] Invalid command 0x%02X"
+kp_edi_error_unable_to_map_address(const char* name, uint32_t mapAddress) "[%s] Unable to map address 0x%" PRIX32
+
+kp_edi_error_reg_write(const char* name, uint8_t offset, uint32_t value) "[%s] Write register(0x%02X) Value: 0x%" PRIX32
+kp_edi_error_reg_read(const char* name, uint32_t offset) "[%s] Read register(0x%02X)"
+
+kp_edi_error(const char* name, const char* error) "[%s] Error: %s"
+kp_edi_error_operation(const char* name, const char* operation, const char* buffer, const char* error) "[%s] unable to %s to: %s, reason: '%s'"
+kp_edi_error_reason(const char* name, const char* error, const char* reason) "[%s] Error: %s, reason: '%s'"
+kp_edi_error_map_message_part(const char* name, size_t index) "[%s] Unable to map message part at index: %zu"
+kp_edi_error_invalid_block_size(const char* name, size_t expected, size_t actual) "[%s] Invalid block size. Expected: %zu, got: %zu"
+kp_edi_error_invalid_connection_mode(const char* name, int mode) "[%s] Invalid connection mode: %d"
 
