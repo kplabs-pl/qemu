@@ -40,7 +40,7 @@ static uint64_t kp_edi_register_read(void *opaque, hwaddr addr, unsigned size)
         case 0x10:
             return s->registers.id;
         default:
-            qemu_log("EDI: read invalid register %lX\n", addr);
+            qemu_log("EDI: read invalid register %zX\n", addr);
             return 0xDEADBEEF;
     }
 }
@@ -99,7 +99,7 @@ static void kp_edi_register_write(void *opaque, hwaddr addr, uint64_t data, unsi
             set_irq(s);
             break;
         default:
-            qemu_log("EDI: write invalid register %lX\n", addr);
+            qemu_log("EDI: write invalid register %zX\n", addr);
     }
 }
 

@@ -5,7 +5,7 @@ kp_edi_command(uint64_t baseAddress, const char* command) "Device(0x%" PRIX64 ")
 kp_edi_operation_completed(uint64_t baseAddress, const char* operation, const char* url) "Device(0x%" PRIX64 ") %s to '%s'"
 kp_edi_disconnected(uint64_t baseAddress) "Device(0x%" PRIX64 ") disconnected"
 kp_edi_ready_to_send_more(uint64_t baseAddress) "Device(0x%" PRIX64 ") is ready to send more messages"
-kp_edi_message_sent(uint64_t baseAddress, size_t count, size_t remainingMessages) "Device(0x%" PRIX64 ") sent %lu messages. Remaining %lu messages in queue"
+kp_edi_message_sent(uint64_t baseAddress, size_t count, size_t remainingMessages) "Device(0x%" PRIX64 ") sent %zu messages. Remaining %zu messages in queue"
 kp_edi_message_incoming(uint64_t baseAddress) "Device(0x%" PRIX64 ") incoming message detected"
 kp_edi_message_received(uint64_t baseAddress, size_t size, size_t inQueue) "Device(0x%" PRIX64 ") received message %zu bytes long. %zu messages in queue"
 kp_edi_message_remove_nothing(uint64_t baseAddress) "Device(0x%" PRIX64 ") nothing to remove from queue"
