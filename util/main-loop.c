@@ -640,7 +640,7 @@ GSource *iohandler_get_g_source(void)
     return aio_get_g_source(iohandler_ctx);
 }
 
-void qemu_set_fd_handler(int fd,
+void qemu_set_fd_handler(fd_handle_type fd,
                          IOHandler *fd_read,
                          IOHandler *fd_write,
                          void *opaque)

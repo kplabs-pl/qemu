@@ -98,7 +98,7 @@ static bool aio_remove_fd_handler(AioContext *ctx, AioHandler *node)
 }
 
 void aio_set_fd_handler(AioContext *ctx,
-                        int fd,
+                        fd_handle_type fd,
                         bool is_external,
                         IOHandler *io_read,
                         IOHandler *io_write,

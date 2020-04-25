@@ -458,6 +458,13 @@ void aio_dispatch(AioContext *ctx);
  */
 bool aio_poll(AioContext *ctx, bool blocking);
 
+#ifdef WIN32
+typedef uintptr_t fd_handle_type;
+#else
+typedef int fd_handle_type;
+#endif
+
+
 /* Register a file descriptor and associated callbacks.  Behaves very similarly
  * to qemu_set_fd_handler.  Unlike qemu_set_fd_handler, these callbacks will
  * be invoked when using aio_poll().
@@ -466,7 +473,7 @@ bool aio_poll(AioContext *ctx, bool blocking);
  * instead of qemu_set_fd_handler[2].
  */
 void aio_set_fd_handler(AioContext *ctx,
-                        int fd,
+                        fd_handle_type fd,
                         bool is_external,
                         IOHandler *io_read,
                         IOHandler *io_write,

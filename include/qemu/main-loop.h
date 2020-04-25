@@ -222,7 +222,7 @@ typedef int IOCanReadHandler(void *opaque);
  *
  * @opaque: A pointer-sized value that is passed to @fd_read and @fd_write.
  */
-void qemu_set_fd_handler(int fd,
+void qemu_set_fd_handler(fd_handle_type fd,
                          IOHandler *fd_read,
                          IOHandler *fd_write,
                          void *opaque);

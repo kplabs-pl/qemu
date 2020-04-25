@@ -3,6 +3,7 @@
 
 #include "qemu/osdep.h"
 #include "hw/qdev-core.h"
+#include "block/aio.h"
 
 typedef enum
 {
@@ -21,9 +22,6 @@ typedef enum
     edi_mode_sub = 6,
     edi_mode_ensure_size = 0xffffffff
 } edi_communication_mode;
-
-// TODO: fix
-typedef int fd_handle_type;
 
 typedef struct kp_edi_message_chunk
 {
