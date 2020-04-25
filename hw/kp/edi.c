@@ -17,7 +17,7 @@
 #include "hw/sysbus.h"
 #include "qapi/error.h"
 #include "hw/kp/edi.h"
-#include "trace.h"
+#include "trace/trace-hw_kp.h"
 #include "edi-commands.h"
 #include "edi-list.h"
 
@@ -25,7 +25,7 @@ static uint64_t kp_edi_register_read(void *opaque, hwaddr addr, unsigned size)
 {
     KPEDIState *s = (KPEDIState*)opaque;
 
-    trace_kp_edi_reg_read(s->addr, addr);
+    trace_kp_edi_reg_read(s->name, addr);
 
     switch(addr)
     {
@@ -40,7 +40,7 @@ static uint64_t kp_edi_register_read(void *opaque, hwaddr addr, unsigned size)
         case 0x10:
             return s->registers.id;
         default:
-            qemu_log("EDI: read invalid register %zX\n", addr);
+            trace_kp_edi_error_reg_read(s->name, addr);
             return 0xDEADBEEF;
     }
 }
@@ -81,7 +81,7 @@ static void kp_edi_register_write(void *opaque, hwaddr addr, uint64_t data, unsi
 {
     KPEDIState *s = (KPEDIState*)opaque;
 
-    trace_kp_edi_reg_write(s->addr, addr, data);
+    trace_kp_edi_reg_write(s->name, addr, data);
 
     switch(addr)
     {
@@ -99,13 +99,9 @@ static void kp_edi_register_write(void *opaque, hwaddr addr, uint64_t data, unsi
             set_irq(s);
             break;
         default:
-            qemu_log("EDI: write invalid register %zX\n", addr);
+            trace_kp_edi_error_reg_write(s->name, addr, data);
+            break;
     }
-}
-
-static void kp_edi_reset(DeviceState* dev)
-{
-    // TODO: reset
 }
 
 static void kp_edi_init(Object* obj)
@@ -132,7 +128,7 @@ static void kp_edi_realize(DeviceState* dev, Error** errp)
 {
     KPEDIState *s = KP_EDI(dev);
 
-    trace_kp_edi_realize(s->addr);
+    trace_kp_edi_realize(s->name, s->addr);
 
     s->irq = NULL;
     s->registers.interrupt = UINT32_MAX;
@@ -148,6 +144,7 @@ static void kp_edi_realize(DeviceState* dev, Error** errp)
 
 static Property kp_edi_props[] = {
     DEFINE_PROP_UINT64("addr", KPEDIState, addr, 0xF0000010),
+    DEFINE_PROP_STRING("name", KPEDIState, name),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -155,7 +152,6 @@ static void kp_edi_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
 
-    dc->reset = kp_edi_reset;
     dc->realize = kp_edi_realize;
 
     device_class_set_props(dc, kp_edi_props);
