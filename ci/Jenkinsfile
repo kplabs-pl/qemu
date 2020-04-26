@@ -13,9 +13,48 @@ pipeline {
                 }
             }
             steps {
-                dir('build-linux') {
-                    sh('../src/ci/configure-linux.sh ../src ../build-install')
+                dir('win32-install') {
+                    deleteDir()
+                }
+                dir('win32-nanomsg') {
+                    deleteDir()
+
+                    sh('git clone https://github.com/nanomsg/nanomsg.git src && git -C ./src checkout 2f4d57f08684ff26840d87dc0c9843aedd37100c')
+                    dir('build') {
+                        sh('cmake -G Ninja -DCMAKE_TOOLCHAIN_FILE=../../src/ci/nanomsg.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../../win32-install ../src')
+                        sh('ninja install')
+                    }
+                }
+                dir('win32-build') {
+                    deleteDir()
+                    sh('sh ../src/ci/configure-win32.sh ../src ../win32-install')
                     sh('make -j5')
+                    sh('make install')
+                }
+                dir('win32-artifacts') {
+                    deleteDir()
+                    sh("""
+                    cp ../win32-install/bin/qemu-system-arm.exe .
+                    cp ../win32-install/bin/libnanomsg.dll .
+                    cp /usr/x86_64-w64-mingw32/bin/libffi-6.dll .
+                    cp /usr/x86_64-w64-mingw32/bin/libgcc_s_seh-1.dll .
+                    cp /usr/x86_64-w64-mingw32/bin/libgio-2.0-0.dll .
+                    cp /usr/x86_64-w64-mingw32/bin/libglib-2.0-0.dll .
+                    cp /usr/x86_64-w64-mingw32/bin/libgmodule-2.0-0.dll .
+                    cp /usr/x86_64-w64-mingw32/bin/libgobject-2.0-0.dll .
+                    cp /usr/x86_64-w64-mingw32/bin/libiconv-2.dll .
+                    cp /usr/x86_64-w64-mingw32/bin/libintl-8.dll .
+                    cp /usr/x86_64-w64-mingw32/bin/libpcre-1.dll .
+                    cp /usr/x86_64-w64-mingw32/bin/libpixman-1-0.dll .
+                    cp /usr/x86_64-w64-mingw32/bin/libssp-0.dll .
+                    cp /usr/x86_64-w64-mingw32/bin/libstdc++-6.dll .
+                    cp /usr/x86_64-w64-mingw32/bin/libwinpthread-1.dll .
+                    cp /usr/x86_64-w64-mingw32/bin/zlib1.dll .
+                    zip qemu-win64.zip *
+                    sha256sum qemu-win64.zip > qemu-win64.zip.sha
+                    """)
+
+                    archiveArtifacts '*.*'
                 }
             }
         }
