@@ -48,8 +48,6 @@ static uint64_t kp_edi_register_read(void *opaque, hwaddr addr, unsigned size)
 
 static void trigger_irq(KPEDIState* s)
 {
-    qemu_log("EDI: triggering irq %d\n", s->registers.interrupt);
-   
     if(s->irq != NULL) 
     {
         qemu_irq_pulse(s->irq);
