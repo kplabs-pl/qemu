@@ -2,12 +2,11 @@
 BASE=$1
 INSTALL=$(realpath $2)
 
-export PKG_CONFIG_PATH_CUSTOM=$INSTALL/lib/pkgconfig/
+export PKG_CONFIG_PATH=$INSTALL/lib/pkgconfig/
 # -static
 $BASE/configure \
     --prefix=$INSTALL \
     --bindir=$INSTALL/bin \
-    --cross-prefix=x86_64-w64-mingw32- \
     --target-list=arm-softmmu \
     --disable-docs \
     --disable-guest-agent \
