@@ -30,6 +30,7 @@ typedef struct  {
     int64_t flash_size_kb;
     int64_t freq_mhz;
     int64_t num_irq;
+    bool writable_code_memory;
 } VirtCortexMMachineState;
 
 #define TYPE_VIRT_CORTEX_M_MACHINE MACHINE_TYPE_NAME("virt_cortex_m")
@@ -52,8 +53,15 @@ static void virt_cortex_m_init(MachineState *ms)
     flash_size = m->flash_size_kb * 1024;
     sram_size = m->parent_obj.ram_size;
 
-    memory_region_init_rom(flash, NULL, "virt_cortex_m.flash", flash_size,
-                           &error_fatal);
+    if(m->writable_code_memory)
+    {
+        memory_region_init_ram(flash, NULL, "virt_cortex_m.flash", flash_size, &error_fatal);
+    }
+    else
+    {
+        memory_region_init_rom(flash, NULL, "virt_cortex_m.flash", flash_size, &error_fatal);
+    }
+
     memory_region_add_subregion(system_memory, 0, flash);
 
     memory_region_init_ram(sram, NULL, "virt_cortex_m.sram", sram_size,
@@ -116,6 +124,18 @@ static void num_irq_get(Object *obj, Visitor *v, const char *name, void *opaque,
     visit_type_int64(v, name, &m->num_irq, errp);
 }
 
+static void writable_code_memory_set(Object *obj, Visitor *v, const char *name, void *opaque, Error **errp)
+{
+    VirtCortexMMachineState* m = VIRT_CORTEX_M_MACHINE(obj);
+    visit_type_bool(v, name, &m->writable_code_memory, errp);
+}
+
+static void writable_code_memory_get(Object *obj, Visitor *v, const char *name, void *opaque, Error **errp)
+{
+    VirtCortexMMachineState* m = VIRT_CORTEX_M_MACHINE(obj);
+    visit_type_bool(v, name, &m->writable_code_memory, errp);
+}
+
 static void virt_cortex_m_class_init(ObjectClass *oc, void *data)
 {
     MachineClass *mc = MACHINE_CLASS(oc);
@@ -157,6 +177,17 @@ static void virt_cortex_m_class_init(ObjectClass *oc, void *data)
         oc, "num-irq",
         "Number of IRQs"
     );
+
+    object_class_property_add(
+        oc, "writable-code-memory", "bool",
+        &writable_code_memory_get, &writable_code_memory_set, NULL,
+        NULL
+    );
+
+    object_class_property_set_description(
+        oc, "writable-code-memory",
+        "Flag indicating whether code memory is freely writable"
+    );
 }
 
 static void virt_cortex_m_instance_init(Object* obj)
@@ -165,6 +196,7 @@ static void virt_cortex_m_instance_init(Object* obj)
     m->flash_size_kb = 1 * 1024;
     m->freq_mhz = 50;
     m->num_irq = 64;
+    m->writable_code_memory = false;
 }
 
 static const TypeInfo virt_cortex_m_type = {
