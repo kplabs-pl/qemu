@@ -1551,7 +1551,7 @@ if test "$mingw32" = "yes" ; then
     mandir="$prefix"
     datadir="$prefix"
     docdir="$prefix"
-    bindir="$prefix"
+    bindir="${bindir:-$prefix}"
     sysconfdir="$prefix"
     local_statedir="$prefix"
 else
