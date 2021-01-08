@@ -30,8 +30,8 @@ pipeline {
                         dir('win32-build') {
                             deleteDir()
                             sh('sh ../src/ci/configure-win32.sh ../src ../win32-install')
-                            sh('make -j5')
-                            sh('make install')
+                            sh('ninja -j5')
+                            sh('ninja install')
                         }
                         dir('win32-artifacts') {
                             deleteDir()
@@ -77,8 +77,8 @@ pipeline {
                         dir('linux-build') {
                             deleteDir()
                             sh('sh ../src/ci/configure-linux.sh ../src ../linux-install')
-                            sh('make -j5')
-                            sh('make install')
+                            sh('ninja -j5')
+                            sh('ninja install')
                         }
                         dir('linux-artifacts') {
                             deleteDir()
