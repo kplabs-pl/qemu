@@ -5,3 +5,7 @@ config KP_MEM_FILE
 config KP_EDI
     bool
     default y
+
+config KP_ARGS_DEVICE
+    bool
+    default y
