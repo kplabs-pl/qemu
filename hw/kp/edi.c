@@ -4,109 +4,20 @@
 #include "hw/qdev-properties.h"
 #include "qemu/log.h"
 #include "hw/core/cpu.h"
-#include "exec/memory.h"
-#include "hw/irq.h"
 #include "exec/address-spaces.h"
 #include <nanomsg/pair.h>
 #include <nanomsg/reqrep.h>
 #include <nanomsg/pubsub.h>
 #include <nanomsg/pipeline.h>
-#include "target/arm/cpu-qom.h"
-#include "target/arm/cpu.h"
-#include "hw/intc/armv7m_nvic.h"
 #include "hw/sysbus.h"
-#include "qapi/error.h"
 #include "hw/kp/edi.h"
 #include "trace/trace-hw_kp.h"
-#include "edi-commands.h"
 #include "edi-list.h"
-
-static uint64_t kp_edi_register_read(void *opaque, hwaddr addr, unsigned size)
-{
-    KPEDIState *s = (KPEDIState*)opaque;
-
-    trace_kp_edi_reg_read(s->name, addr);
-
-    switch(addr)
-    {
-        case 0x00:
-            return s->registers.command;
-        case 0x04:
-            return s->registers.pointer;
-        case 0x08:
-            return s->registers.size;
-        case 0x0C:
-            return s->registers.interrupt;
-        case 0x10:
-            return s->registers.id;
-        default:
-            trace_kp_edi_error_reg_read(s->name, addr);
-            return 0xDEADBEEF;
-    }
-}
-
-
-static void trigger_irq(KPEDIState* s)
-{
-    if(s->irq != NULL) 
-    {
-        qemu_irq_pulse(s->irq);
-    }
-}
-
-static void set_irq(KPEDIState* s)
-{
-    if(s->registers.interrupt == UINT32_MAX)
-    {
-        s->irq = NULL;
-    }
-    else 
-    {
-        ARMCPU *cpu = ARM_CPU(first_cpu);
-        NVICState* nvic = (NVICState*)cpu->env.nvic;
-        
-        gchar *propname = g_strdup_printf("unnamed-gpio-in[%u]", s->registers.interrupt);
-
-        Object* irqObj = object_property_get_link(OBJECT(nvic), propname, &error_abort);
-
-        g_free(propname);
-
-        s->irq = (qemu_irq)irqObj;
-    }
-}
-
-static void kp_edi_register_write(void *opaque, hwaddr addr, uint64_t data, unsigned size)
-{
-    KPEDIState *s = (KPEDIState*)opaque;
-
-    trace_kp_edi_reg_write(s->name, addr, data);
-
-    switch(addr)
-    {
-        case 0x00:
-            s->registers.command = kp_edi_handle_command(s, data);
-            break;
-        case 0x04:
-            s->registers.pointer = (uint32_t)data;
-            break;
-        case 0x08:
-            s->registers.size = (uint32_t)data;
-            break;
-        case 0x0C:
-            s->registers.interrupt = (uint32_t)data;
-            set_irq(s);
-            break;
-        default:
-            trace_kp_edi_error_reg_write(s->name, addr, data);
-            break;
-    }
-}
 
 static void kp_edi_init(Object* obj)
 {
     KPEDIState *s = KP_EDI(obj);
-    s->registers.id = 0xDEADCAFE;
-    s->trigger_irq = trigger_irq;
+    kp_edi_init_arch(s);
 
     s->connection_state = edi_connection_state_disconnected;
     s->socket = -1;
@@ -116,11 +27,6 @@ static void kp_edi_init(Object* obj)
     kp_edi_chunk_list_init(&s->receive_list);
     kp_edi_chunk_list_init(&s->send_list);
 }
-
-static const MemoryRegionOps RegisterOps = {
-    .read = kp_edi_register_read,
-    .write = kp_edi_register_write,
-};
 
 static void kp_edi_realize(DeviceState* dev, Error** errp)
 {
@@ -135,7 +41,7 @@ static void kp_edi_realize(DeviceState* dev, Error** errp)
 
     MemoryRegion *region = g_new(MemoryRegion, 1);
 
-    memory_region_init_io(region, NULL, &RegisterOps, s, "kp-edi", KP_EDI_ADDRESS_SPACE_SIZE);
+    memory_region_init_io(region, NULL, s->register_ops, s, "kp-edi", s->address_space_size);
 
     memory_region_add_subregion(system_memory, s->addr, region);
 }

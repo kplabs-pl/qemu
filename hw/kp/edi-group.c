@@ -38,6 +38,7 @@ static void kp_edi_group_realize(DeviceState *dev, Error **errp)
         nameFormat = "EDI%02d";
     }
 
+    uint64_t addr = s->addr;
     for(uint8_t i = 0; i < s->count; i++)
     {
         gchar *name = g_strdup_printf("edi[%u]", i);
@@ -45,9 +46,10 @@ static void kp_edi_group_realize(DeviceState *dev, Error **errp)
 
         object_initialize_child(OBJECT(s), name, &s->children[i], TYPE_KP_EDI);
 
-        object_property_set_int(OBJECT(&s->children[i]), "addr", s->addr + KP_EDI_ADDRESS_SPACE_SIZE * i, &error_abort);
+        object_property_set_int(OBJECT(&s->children[i]), "addr", addr, &error_abort);
         object_property_set_str(OBJECT(&s->children[i]), "name", logName, &error_abort);
-        
+        addr += s->children[i].address_space_size;
+
         g_free(logName);
         g_free(name);
     }

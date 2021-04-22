@@ -183,7 +183,7 @@ static void drop_outgoing_message(KPEDIState* device, void* message)
     trace_kp_edi_message_dropped(device->name, device->send_list.size, nn_strerror(nn_errno()));
 }
 
-static bool enquene_outgoing_message(KPEDIState* device, void* message, size_t size)
+static bool enqueue_outgoing_message(KPEDIState* device, void* message, size_t size)
 {
     const struct edi_communication_pair* mode = find_communication_mode(device->communication_mode);
     const bool status = device->send_list.size < SendQueueLengthLimit && mode->write_register != NULL;
@@ -210,14 +210,14 @@ static edi_status send_message(KPEDIState* device, void* message, size_t size)
         const int status = nn_send(device->socket, &message, NN_MSG, NN_DONTWAIT);
         if(
             status == -1 &&
-            (nn_errno() != EAGAIN || !enquene_outgoing_message(device, message, size))
+            (nn_errno() != EAGAIN || !enqueue_outgoing_message(device, message, size))
             )
         {
             drop_outgoing_message(device, message);
             return edi_status_write_error;
         }
     }
-    else if(!enquene_outgoing_message(device, message, size))
+    else if(!enqueue_outgoing_message(device, message, size))
     {
         drop_outgoing_message(device, message);
         return edi_status_write_error;

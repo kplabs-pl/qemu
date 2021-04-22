@@ -4,6 +4,7 @@
 #include "qemu/osdep.h"
 #include "hw/qdev-core.h"
 #include "block/aio.h"
+#include "exec/memory.h"
 
 typedef enum
 {
@@ -63,12 +64,20 @@ typedef struct KPEDIState {
     kp_edi_chunk_list receive_list;
 
     void (*trigger_irq)(struct KPEDIState* self);
+    void (*set_irq)(struct KPEDIState* self);
+    const MemoryRegionOps* register_ops;
+    int address_space_size;
 } KPEDIState;
 
 #define TYPE_KP_EDI "kp-edi"
 #define KP_EDI(obj) OBJECT_CHECK(KPEDIState, (obj), \
                                          TYPE_KP_EDI)
 
-#define KP_EDI_ADDRESS_SPACE_SIZE 0x20
+#define KP_EDI_ADDRESS_SPACE_SIZE_REG8_PTR16 (0x6)
+#define KP_EDI_ADDRESS_SPACE_SIZE_REG32_PTR32 (0x20)
+extern const MemoryRegionOps KpEdiRegisterOpsReg8Ptr16;
+extern const MemoryRegionOps KpEdiRegisterOpsReg32Ptr32;
+
+void kp_edi_init_arch(KPEDIState *s);
 
 #endif
