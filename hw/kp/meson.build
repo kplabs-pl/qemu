@@ -6,3 +6,4 @@ specific_ss.add(when: 'CONFIG_KP_EDI', if_true: files('edi-list.c'))
 specific_ss.add(when: 'CONFIG_KP_EDI', if_true: files('edi-group.c'))
 
 specific_ss.add(when: 'CONFIG_KP_ARGS_DEVICE', if_true: files('args-device.c'))
+specific_ss.add(when: 'CONFIG_KP_EXIT_DEVICE', if_true: files('exit-device.c'))

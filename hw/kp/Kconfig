@@ -9,3 +9,7 @@ config KP_EDI
 config KP_ARGS_DEVICE
     bool
     default y
+
+config KP_EXIT_DEVICE
+    bool
+    default y
