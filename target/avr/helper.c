@@ -146,12 +146,12 @@ bool avr_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
 /*
  *  helpers
  */
-
 void helper_sleep(CPUAVRState *env)
 {
     CPUState *cs = env_cpu(env);
 
     cs->exception_index = EXCP_HLT;
+    cs->halted = 1;
     cpu_loop_exit(cs);
 }
 

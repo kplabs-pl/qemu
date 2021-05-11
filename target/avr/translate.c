@@ -2813,6 +2813,7 @@ static bool trans_NOP(DisasContext *ctx, arg_NOP *a)
  */
 static bool trans_SLEEP(DisasContext *ctx, arg_SLEEP *a)
 {
+    tcg_gen_movi_tl(cpu_pc, ctx->npc);
     gen_helper_sleep(cpu_env);
     ctx->base.is_jmp = DISAS_NORETURN;
     return true;
