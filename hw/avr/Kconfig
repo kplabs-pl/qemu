@@ -7,3 +7,7 @@ config AVR_ATMEGA_MCU
 config ARDUINO
     select AVR_ATMEGA_MCU
     select UNIMP
+
+config ATMEGA_MACHINE
+    select AVR_ATMEGA_MCU
+    select UNIMP

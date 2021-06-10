@@ -98,6 +98,17 @@ static const peripheral_cfg dev168_328[PERIFMAX] = {
     [GPIOC]         = {  0x26 },
     [GPIOB]         = {  0x23 },
     [GPIOA]         = {  0x20 },
+}, dev164_324_644[PERIFMAX] = {
+    [POWER0]        = {  0x64 },
+    [GPIOA]         = {  0x20 },
+    [GPIOB]         = {  0x23 },
+    [GPIOC]         = {  0x26 },
+    [GPIOD]         = {  0x29 },
+    [USART0]        = {  0xc0, POWER0, 1 },
+    [USART1]        = {  0xc8, POWER0, 4 },
+    [TIMER0]        = {  0x44, POWER0, 5, 0x6e, 0x35, false },
+    [TIMER1]        = {  0x80, POWER0, 3, 0x6f, 0x36, true },
+    [TIMER2]        = {  0xb0, POWER0, 6, 0x70, 0x37, false },
 };
 
 enum AtmegaIrq {
@@ -184,6 +195,23 @@ static const uint8_t irq168_328[IRQ_COUNT] = {
     [USART3_RXC_IRQ]        = 55,
     [USART3_DRE_IRQ]        = 56,
     [USART3_TXC_IRQ]        = 57,
+}, irq164_324_644[IRQ_COUNT] = {
+    [TIMER2_COMPA_IRQ]      = 10,
+    [TIMER2_COMPB_IRQ]      = 11,
+    [TIMER2_OVF_IRQ]        = 12,
+    [TIMER1_CAPT_IRQ]       = 13,
+    [TIMER1_COMPA_IRQ]      = 14,
+    [TIMER1_COMPB_IRQ]      = 15,
+    [TIMER1_OVF_IRQ]        = 16,
+    [TIMER0_COMPA_IRQ]      = 17,
+    [TIMER0_COMPB_IRQ]      = 18,
+    [TIMER0_OVF_IRQ]        = 19,
+    [USART0_RXC_IRQ]        = 21,
+    [USART0_DRE_IRQ]        = 22,
+    [USART0_TXC_IRQ]        = 23,
+    [USART1_RXC_IRQ]        = 29,
+    [USART1_DRE_IRQ]        = 30,
+    [USART1_TXC_IRQ]        = 31,
 };
 
 static void connect_peripheral_irq(const AtmegaMcuClass *k,
@@ -397,6 +425,51 @@ static void atmega328_class_init(ObjectClass *oc, void *data)
     amc->dev = dev168_328;
 };
 
+static void atmega324_class_init(ObjectClass *oc, void *data)
+{
+    AtmegaMcuClass *amc = ATMEGA_MCU_CLASS(oc);
+
+    amc->cpu_type = AVR_CPU_TYPE_NAME("avr5");
+    amc->flash_size = 64 * KiB;
+    amc->eeprom_size = 1 * KiB;
+    amc->sram_size = 2 * KiB;
+    amc->io_size = 256;
+    amc->gpio_count = 23;
+    amc->adc_count = 6;
+    amc->irq = irq164_324_644;
+    amc->dev = dev164_324_644;
+};
+
+static void atmega644_class_init(ObjectClass *oc, void *data)
+{
+    AtmegaMcuClass *amc = ATMEGA_MCU_CLASS(oc);
+
+    amc->cpu_type = AVR_CPU_TYPE_NAME("avr5");
+    amc->flash_size = 64 * KiB;
+    amc->eeprom_size = 1 * KiB;
+    amc->sram_size = 2 * KiB;
+    amc->io_size = 256;
+    amc->gpio_count = 23;
+    amc->adc_count = 6;
+    amc->irq = irq164_324_644;
+    amc->dev = dev164_324_644;
+};
+
+static void atmega644_big_class_init(ObjectClass *oc, void *data)
+{
+    AtmegaMcuClass *amc = ATMEGA_MCU_CLASS(oc);
+
+    amc->cpu_type = AVR_CPU_TYPE_NAME("avr5");
+    amc->flash_size = 64 * KiB;
+    amc->eeprom_size = 1 * KiB;
+    amc->sram_size = 64 * KiB;
+    amc->io_size = 256;
+    amc->gpio_count = 23;
+    amc->adc_count = 6;
+    amc->irq = irq164_324_644;
+    amc->dev = dev164_324_644;
+};
+
 static void atmega1280_class_init(ObjectClass *oc, void *data)
 {
     AtmegaMcuClass *amc = ATMEGA_MCU_CLASS(oc);
@@ -436,6 +509,18 @@ static const TypeInfo atmega_mcu_types[] = {
         .name           = TYPE_ATMEGA328_MCU,
         .parent         = TYPE_ATMEGA_MCU,
         .class_init     = atmega328_class_init,
+    }, {
+        .name           = TYPE_ATMEGA324_MCU,
+        .parent         = TYPE_ATMEGA_MCU,
+        .class_init     = atmega324_class_init,
+    }, {
+        .name           = TYPE_ATMEGA644_MCU,
+        .parent         = TYPE_ATMEGA_MCU,
+        .class_init     = atmega644_class_init,
+    }, {
+        .name           = TYPE_ATMEGA644_BIG_MCU,
+        .parent         = TYPE_ATMEGA_MCU,
+        .class_init     = atmega644_big_class_init,
     }, {
         .name           = TYPE_ATMEGA1280_MCU,
         .parent         = TYPE_ATMEGA_MCU,
