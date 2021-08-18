@@ -129,6 +129,16 @@ static void arduino_mega2560_class_init(ObjectClass *oc, void *data)
     amc->xtal_hz    = 16 * 1000 * 1000; /* CSTCE16M0V53-R0 */
 };
 
+static void arduino_uno_64kb_class_init(ObjectClass *oc, void *data)
+{
+    MachineClass *mc = MACHINE_CLASS(oc);
+    ArduinoMachineClass *amc = ARDUINO_MACHINE_CLASS(oc);
+
+    mc->desc      = "Arduino UNO with 64kB of flash and sram",
+    amc->mcu_type = TYPE_ATMEGA328_64KB_MCU;
+    amc->xtal_hz  = 16 * 1000 * 1000;
+};
+
 static const TypeInfo arduino_machine_types[] = {
     {
         .name          = MACHINE_TYPE_NAME("arduino-duemilanove"),
@@ -146,6 +156,10 @@ static const TypeInfo arduino_machine_types[] = {
         .name          = MACHINE_TYPE_NAME("arduino-mega-2560-v3"),
         .parent        = TYPE_ARDUINO_MACHINE,
         .class_init    = arduino_mega2560_class_init,
+    }, {
+        .name          = MACHINE_TYPE_NAME("arduino-uno-64kb"),
+        .parent        = TYPE_ARDUINO_MACHINE,
+        .class_init    = arduino_uno_64kb_class_init,
     }, {
         .name           = TYPE_ARDUINO_MACHINE,
         .parent         = TYPE_MACHINE,

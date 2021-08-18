@@ -455,7 +455,7 @@ static void atmega644_class_init(ObjectClass *oc, void *data)
     amc->dev = dev164_324_644;
 };
 
-static void atmega644_big_class_init(ObjectClass *oc, void *data)
+static void atmega644_64kb_class_init(ObjectClass *oc, void *data)
 {
     AtmegaMcuClass *amc = ATMEGA_MCU_CLASS(oc);
 
@@ -468,6 +468,21 @@ static void atmega644_big_class_init(ObjectClass *oc, void *data)
     amc->adc_count = 6;
     amc->irq = irq164_324_644;
     amc->dev = dev164_324_644;
+};
+
+static void atmega328_64kb_class_init(ObjectClass *oc, void *data)
+{
+    AtmegaMcuClass *amc = ATMEGA_MCU_CLASS(oc);
+
+    amc->cpu_type = AVR_CPU_TYPE_NAME("avr5");
+    amc->flash_size = 64 * KiB;
+    amc->eeprom_size = 1 * KiB;
+    amc->sram_size = 64 * KiB;
+    amc->io_size = 256;
+    amc->gpio_count = 23;
+    amc->adc_count = 6;
+    amc->irq = irq168_328;
+    amc->dev = dev168_328;
 };
 
 static void atmega1280_class_init(ObjectClass *oc, void *data)
@@ -518,9 +533,13 @@ static const TypeInfo atmega_mcu_types[] = {
         .parent         = TYPE_ATMEGA_MCU,
         .class_init     = atmega644_class_init,
     }, {
-        .name           = TYPE_ATMEGA644_BIG_MCU,
+        .name           = TYPE_ATMEGA644_64KB_MCU,
         .parent         = TYPE_ATMEGA_MCU,
-        .class_init     = atmega644_big_class_init,
+        .class_init     = atmega644_64kb_class_init,
+    }, {
+        .name           = TYPE_ATMEGA328_64KB_MCU,
+        .parent         = TYPE_ATMEGA_MCU,
+        .class_init     = atmega328_64kb_class_init,
     }, {
         .name           = TYPE_ATMEGA1280_MCU,
         .parent         = TYPE_ATMEGA_MCU,

@@ -90,13 +90,13 @@ static void atmega_machine_class_init(ObjectClass *oc, void *data)
     );
 }
 
-static void atmega644_big_class_init(ObjectClass *oc, void *data)
+static void atmega644_64kb_class_init(ObjectClass *oc, void *data)
 {
     MachineClass *mc = MACHINE_CLASS(oc);
     ATmegaMachineClass *amc = ATMEGA_MACHINE_CLASS(oc);
 
-    mc->desc      = "Big ATmega644",
-    amc->mcu_type = TYPE_ATMEGA644_BIG_MCU;
+    mc->desc      = "ATmega644 with 64kB of flash and sram",
+    amc->mcu_type = TYPE_ATMEGA644_64KB_MCU;
 };
 
 static void atmega644_class_init(ObjectClass *oc, void *data)
@@ -119,9 +119,9 @@ static void atmega324_class_init(ObjectClass *oc, void *data)
 
 static const TypeInfo atmega_machine_types[] = {
     {
-        .name          = MACHINE_TYPE_NAME("atmega644-big"),
+        .name          = MACHINE_TYPE_NAME("atmega644-64kb"),
         .parent        = TYPE_ATMEGA_MACHINE,
-        .class_init    = atmega644_big_class_init,
+        .class_init    = atmega644_64kb_class_init,
     }, {
         .name          = MACHINE_TYPE_NAME("atmega644"),
         .parent        = TYPE_ATMEGA_MACHINE,
