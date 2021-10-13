@@ -576,3 +576,8 @@ config VIRT_CORTEX_M
     bool
     select ARM_V7M
     select UNIMP
+
+config VIRT_CORTEX_R
+    bool
+    select ARM_GIC
+    select UNIMP
