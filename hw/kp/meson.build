@@ -1,4 +1,5 @@
 specific_ss.add(when: 'CONFIG_POSIX', if_true: files('memfile.c'))
+specific_ss.add(when: 'CONFIG_WIN32', if_true: files('memfile.c'))
 
 specific_ss.add(when: 'CONFIG_KP_ARGS_DEVICE', if_true: files('args-device.c'))
 
