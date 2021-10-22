@@ -8,7 +8,7 @@ $BASE/configure \
     --prefix=$INSTALL \
     --bindir=$INSTALL/bin \
     --cross-prefix=x86_64-w64-mingw32- \
-    --target-list=arm-softmmu,avr-softmmu \
+    --target-list=arm-softmmu,avr-softmmu,sparc-softmmu \
     --disable-docs \
     --disable-guest-agent \
     --disable-sdl \

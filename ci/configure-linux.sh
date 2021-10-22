@@ -7,7 +7,7 @@ export PKG_CONFIG_PATH=$INSTALL/lib/pkgconfig/
 $BASE/configure \
     --prefix=$INSTALL \
     --bindir=$INSTALL/bin \
-    --target-list=arm-softmmu,avr-softmmu \
+    --target-list=arm-softmmu,avr-softmmu,sparc-softmmu \
     --disable-docs \
     --disable-guest-agent \
     --disable-sdl \
