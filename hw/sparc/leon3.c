@@ -110,6 +110,10 @@ static void write_bootloader(CPUSPARCState *env, uint8_t *base,
     p = gen_store_u32(p, 0x80000314, 0xFFFFFFFE);
     /* *GPTIMER0_CONFIG = GPTIMER_ENABLE | GPTIMER_RESTART;        */
     p = gen_store_u32(p, 0x80000318, 3);
+    
+    /* mark all windows as valid (set WIM to 0) */
+    stl_p(p++, 0x88102000); /* mov  0, %g4 */
+    stl_p(p++, 0x81912000); /* mov  %g4, %wim */
 
     /* JUMP to the entry point                                     */
     stl_p(p++, 0x82100000); /* mov %g0, %g1 */
