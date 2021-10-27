@@ -36,6 +36,8 @@
 
 void grlib_irqmp_ack(DeviceState *dev, int intno);
 
+void grlib_irqmp_set_irq(void *opaque, int irq, int level);
+
 /* GPTimer */
 #define TYPE_GRLIB_GPTIMER "grlib-gptimer"
 

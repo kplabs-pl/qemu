@@ -127,7 +127,7 @@ void grlib_irqmp_ack(DeviceState *dev, int intno)
     grlib_irqmp_ack_mask(state, mask);
 }
 
-static void grlib_irqmp_set_irq(void *opaque, int irq, int level)
+void grlib_irqmp_set_irq(void *opaque, int irq, int level)
 {
     IRQMP      *irqmp = GRLIB_IRQMP(opaque);
     IRQMPState *s;
