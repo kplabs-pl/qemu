@@ -39,6 +39,7 @@ pipeline {
                             cp ../win32-install/bin/qemu-system-arm.exe .
                             cp ../win32-install/bin/qemu-system-avr.exe .
                             cp ../win32-install/bin/qemu-system-sparc.exe .
+                            cp ../win32-install/bin/qemu-system-microblazeel.exe .
                             cp ../win32-install/bin/libnanomsg.dll .
                             cp /usr/x86_64-w64-mingw32/bin/libffi-6.dll .
                             cp /usr/x86_64-w64-mingw32/bin/libgcc_s_seh-1.dll .
@@ -88,6 +89,7 @@ pipeline {
                             cp ../linux-install/bin/qemu-system-arm .
                             cp ../linux-install/bin/qemu-system-avr .
                             cp ../linux-install/bin/qemu-system-sparc .
+                            cp ../linux-install/bin/qemu-system-microblazeel .
                             zip qemu-linux64.zip *
                             sha256sum qemu-linux64.zip > qemu-linux64.zip.sha
                             """)

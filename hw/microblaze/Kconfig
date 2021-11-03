@@ -19,3 +19,6 @@ config PETALOGIX_ML605
 config XLNX_ZYNQMP_PMU
     bool
     select XLNX_ZYNQMP
+
+config VIRT_MICROBLAZE 
+    bool
