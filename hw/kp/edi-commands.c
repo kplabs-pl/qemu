@@ -557,6 +557,24 @@ static edi_status handle_connection_type(KPEDIState* device, void* buffer, size_
     return edi_status_success;
 }
 
+static edi_status handle_subscribe_request(KPEDIState* device, void* buffer, size_t size)
+{
+    if(device->communication_mode != edi_mode_sub)
+    {
+        trace_kp_edi_error(device->name, "Unable to subscribe for non SUB socket.");
+        return edi_status_unable_to_setup_connection;
+    }
+
+    int result = nn_setsockopt(device->socket, NN_SUB, NN_SUB_SUBSCRIBE, buffer, size);
+    if(result < 0)
+    {        
+        trace_kp_edi_error_reason(device->name, "Unable to subscribe", nn_strerror(nn_errno()));
+        return edi_status_unable_to_setup_connection;
+    }
+
+    return edi_status_success;
+}
+
 static edi_status handle_query_count(KPEDIState* device)
 {
     device->registers.size = device->receive_list.size;
@@ -606,6 +624,7 @@ _Static_assert((int)edi_command_query_message_count == 8, "fix command_names map
 _Static_assert((int)edi_command_query_message_size == 9, "fix command_names map");
 _Static_assert((int)edi_command_remove_message == 10, "fix command_names map");
 _Static_assert((int)edi_command_set_connection_type == 11, "fix command_names map");
+_Static_assert((int)edi_command_subscribe == 12, "fix command_names map");
 
 static const char* map_command_code_to_string(edi_command command)
 {
@@ -683,6 +702,8 @@ edi_status kp_edi_handle_command(KPEDIState* state, edi_command command)
         return handle_remove(state);
     case edi_command_set_connection_type:
         return handle_request_with_data(state, false, handle_connection_type);
+    case edi_command_subscribe:
+        return handle_request_with_data(state, false, handle_subscribe_request);
     default:
         trace_kp_edi_error_invalid_command(state->name, command);
         return edi_status_invalid_command;

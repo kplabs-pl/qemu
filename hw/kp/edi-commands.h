@@ -16,7 +16,8 @@ typedef enum
     edi_command_query_message_count = 8,
     edi_command_query_message_size = 9,
     edi_command_remove_message = 10,
-    edi_command_set_connection_type = 11
+    edi_command_set_connection_type = 11,
+    edi_command_subscribe = 12,
 } edi_command;
 
 typedef enum
