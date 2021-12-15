@@ -7,6 +7,8 @@
 #include "hw/sysbus.h"
 #include "hw/qdev-properties.h"
 #include "qapi/visitor.h"
+#include "hw/kp/args-device.h"
+#include "hw/kp/exit-device.h"
 
 #include "boot.h"
 
@@ -18,6 +20,8 @@ typedef struct {
     uint64_t intc_base;
     uint64_t timer_base;
     uint64_t uart_base;
+    uint64_t args_base;
+    uint64_t exit_base;
     uint32_t timer_irq;
     uint32_t uart_irq;
     DeviceState* intc_device;
@@ -70,6 +74,17 @@ static void virt_microblaze_init(MachineState *ms) {
     sysbus_mmio_map(SYS_BUS_DEVICE(dev), 0, m->timer_base);
     sysbus_connect_irq(SYS_BUS_DEVICE(dev), 0,
                        qdev_get_gpio_in(m->intc_device, m->timer_irq));
+
+    // create kp-args
+    dev = qdev_new(TYPE_KP_ARGS_DEVICE);
+    qdev_prop_set_uint64(dev, "addr", m->args_base);
+    qdev_prop_set_string(dev, "cmdline", ms->kernel_cmdline);
+    qdev_realize_and_unref(dev, NULL, &error_fatal);
+
+    // create kp-exit
+    dev = qdev_new(TYPE_KP_EXIT_DEVICE);
+    qdev_prop_set_uint64(dev, "addr", m->exit_base);
+    qdev_realize_and_unref(dev, NULL, &error_fatal);
 
     microblaze_load_kernel(&m->cpu, m->ram_base, ms->ram_size,
                            ms->initrd_filename,
@@ -229,6 +244,8 @@ static void virt_microblaze_instance_init(Object* obj)
     m->intc_base = 0x80000000;
     m->timer_base = 0x80010000;
     m->uart_base = 0x80020000;
+    m->args_base = 0xA0001000;
+    m->exit_base = 0xA0002000;
     m->timer_irq = 0;
     m->uart_irq = 1;
 
