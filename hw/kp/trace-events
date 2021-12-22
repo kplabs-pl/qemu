@@ -29,3 +29,5 @@ kp_edi_error_map_message_part(const char* name, size_t index) "[%s] Unable to ma
 kp_edi_error_invalid_block_size(const char* name, size_t expected, size_t actual) "[%s] Invalid block size. Expected: %zu, got: %zu"
 kp_edi_error_invalid_connection_mode(const char* name, int mode) "[%s] Invalid connection mode: %d"
 
+kp_const_device_error_reg_read(uint64_t offset) "Read register(0x%" PRIX64 ")"
+kp_const_device_error_reg_write(uint64_t offset, uint64_t value) "Write register(0x%" PRIX64 ") Value: 0x%" PRIX64

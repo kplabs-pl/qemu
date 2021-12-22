@@ -13,3 +13,7 @@ config KP_ARGS_DEVICE
 config KP_EXIT_DEVICE
     bool
     default y
+
+config KP_CONST_DEVICE
+    bool
+    default y
