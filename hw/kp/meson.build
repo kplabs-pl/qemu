@@ -7,6 +7,8 @@ specific_ss.add(when: 'CONFIG_KP_EXIT_DEVICE', if_true: files('exit-device.c'))
 
 specific_ss.add(when: 'CONFIG_KP_CONST_DEVICE', if_true: files('const-device.c'))
 
+specific_ss.add(when: 'CONFIG_KP_POSIX_DEVICE', if_true: files('posix-device.c'))
+
 edi_ss = ss.source_set()
 edi_ss.add(files(
   'edi-commands.c',
