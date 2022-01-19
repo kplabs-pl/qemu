@@ -1,3 +1,5 @@
+#include "qemu/osdep.h"
+#include "cpu.h"
 #include "edi-commands.h"
 #include "edi-list.h"
 #include "trace/trace-hw_kp.h"
@@ -543,7 +545,7 @@ static edi_status handle_connection_type(KPEDIState* device, void* buffer, size_
         return edi_status_invalid_block_size;
     }
 
-    const edi_communication_mode input_mode = (edi_communication_mode)*(int*)buffer;
+    const edi_communication_mode input_mode = (edi_communication_mode)ldl_p(buffer);
     const struct edi_communication_pair* mode = find_communication_mode(input_mode);
     if(mode->nanomsg_type == -1)
     {
