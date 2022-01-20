@@ -395,7 +395,7 @@ static uint32_t edi_calculate_gather_size(const edi_message_part* list, uint32_t
     const edi_message_part* end = list + size;
     while(list != end)
     {
-        total_size += list->size;
+        total_size += ldl_p(&list->size);
         ++list;
     }
 
@@ -408,13 +408,14 @@ static bool gather_message(KPEDIState* device, const edi_message_part* list, uin
     for(int counter = 0; counter < size; ++counter)
     {
         const edi_message_part* entry = list + counter;
-        hwaddr requested_size = entry->size;
+        hwaddr buffer_address_host = ldl_p(&entry->buffer);
+        hwaddr requested_size = ldl_p(&entry->size);
         if(requested_size == 0)
         {
             continue;
         }
 
-        void* mapped_buffer = cpu_physical_memory_map((hwaddr)entry->buffer, &requested_size, false);
+        void* mapped_buffer = cpu_physical_memory_map(buffer_address_host, &requested_size, false);
         if(mapped_buffer == NULL)
         {
             trace_kp_edi_error_map_message_part(device->name, counter);
@@ -423,7 +424,7 @@ static bool gather_message(KPEDIState* device, const edi_message_part* list, uin
 
         memcpy(buffer + offset, mapped_buffer, requested_size);
         offset += requested_size;
-        cpu_physical_memory_unmap(mapped_buffer, (hwaddr)entry->buffer, false, requested_size);
+        cpu_physical_memory_unmap(mapped_buffer, buffer_address_host, false, requested_size);
     }
 
     return true;
@@ -491,13 +492,14 @@ static edi_status handle_scatter_read(KPEDIState* device, void* buffer, size_t s
     for(; counter < part_list_length; ++counter)
     {
         edi_message_part* entry = part_list + counter;
-        hwaddr requested_size = entry->size;
+        hwaddr buffer_address_host = ldl_p(&entry->buffer);
+        hwaddr requested_size = ldl_p(&entry->size);
         if(requested_size == 0)
         {
             continue;
         }
 
-        void* mapped_buffer = cpu_physical_memory_map(entry->buffer, &requested_size, true);
+        void* mapped_buffer = cpu_physical_memory_map(buffer_address_host, &requested_size, true);
         if(mapped_buffer == NULL)
         {
             trace_kp_edi_error_map_message_part(device->name, counter);
@@ -507,9 +509,9 @@ static edi_status handle_scatter_read(KPEDIState* device, void* buffer, size_t s
 
         size_t part_size = min_size_t(chunk->size - offset, requested_size);
         memcpy(mapped_buffer, messagebuffer + offset, part_size);
-        entry->size = part_size;
+        stl_p(&entry->size, part_size);
         offset += requested_size;
-        cpu_physical_memory_unmap(mapped_buffer, entry->buffer, true, requested_size);
+        cpu_physical_memory_unmap(mapped_buffer, buffer_address_host, true, requested_size);
         if(part_size != requested_size)
         {
             ++counter;
