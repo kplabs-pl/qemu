@@ -363,6 +363,49 @@ static void kp_posix_remove_file(KPPosixState* state, KPPosixCommandBlock* comma
     g_free(fileName);
 }
 
+static void kp_posix_get_cmdline(KPPosixState* state, KPPosixCommandBlock* command)
+{
+    hwaddr guestBufferAddress = command->registers[0];
+    hwaddr guestBufferLength = command->registers[1];
+    size_t offset = command->registers[2];
+
+    gchar* cmdline;
+    if(strlen(current_machine->kernel_cmdline) > 0)
+    {
+        char* args[] = {current_machine->kernel_filename, current_machine->kernel_cmdline, NULL};
+        cmdline = g_strjoinv(" ", args);
+    }
+    else
+    {
+        cmdline = g_strdup(current_machine->kernel_filename);;
+    }
+    
+    if (cmdline == NULL)
+    {
+        command->registers[0] = 0;
+        g_free(cmdline);
+        return;
+    }
+
+    size_t cmdlineLength = strlen(cmdline);
+    if (cmdlineLength == 0 || guestBufferLength == 0 || offset >= cmdlineLength)
+    {
+        command->registers[0] = 0;
+        g_free(cmdline);
+        return;
+    }
+
+    char* buffer = cpu_physical_memory_map(guestBufferAddress, &guestBufferLength, true);
+
+    size_t bytesCount = MIN(cmdlineLength - offset + 1, guestBufferLength);
+    memcpy(buffer, cmdline + offset, bytesCount);
+
+    cpu_physical_memory_unmap(buffer, guestBufferAddress, true, guestBufferLength);
+    command->registers[0] = bytesCount;
+
+    g_free(cmdline);
+}
+
 #define COMMAND_HANDLER_COUNT 32
 static KPPosixCommandHandler CommandHandlers[COMMAND_HANDLER_COUNT] = {
     [1] = &kp_posix_exit,
@@ -373,11 +416,11 @@ static KPPosixCommandHandler CommandHandlers[COMMAND_HANDLER_COUNT] = {
     [6] = &kp_posix_seek_file,
     [7] = &kp_posix_close_file,
     [8] = &kp_posix_remove_file,
+    [9] = &kp_posix_get_cmdline,
 };
 
 static void kp_posix_handle_command(KPPosixState* state, hwaddr commandBlockAddress)
 {
-   
     hwaddr commandBlockLength = 8 * 4;
     uint32_t* buffer = cpu_physical_memory_map(commandBlockAddress, &commandBlockLength, true);
 
@@ -411,7 +454,6 @@ static void kp_posix_handle_command(KPPosixState* state, hwaddr commandBlockAddr
         qemu_log_mask(LOG_GUEST_ERROR, "kp-posix: Attempted to execute unrecognized command %d\n", commandBlock.commandCode);
         goto end;
     }
-
 
     handler(state, &commandBlock);
 

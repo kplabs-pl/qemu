@@ -139,4 +139,10 @@ Removes file.
 
 
 ### `0x09` - Get command line arguments
-TODO
+Gets the arguments specified on the command line.
+
+| Register | Input                      | Output               |
+|----------|----------------------------|----------------------|
+| R0       | Buffer address             | Number of bytes read |
+| R1       | Buffer length in bytes     | -                    |
+| R2       | Offset in arguments string | -                    |
