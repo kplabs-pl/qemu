@@ -134,6 +134,30 @@ static char* read_guest_string(hwaddr address, hwaddr stringLength)
     return stringPtr;
 }
 
+#define COMMAND_HANDLER_COUNT 32
+static KPPosixCommandHandler CommandHandlers[COMMAND_HANDLER_COUNT];
+
+static void kp_posix_capabilities(KPPosixState* state, KPPosixCommandBlock* command)
+{
+    uint32_t page = command->registers[0];
+
+    command->registers[0] = 0;
+
+    if (page < 512)
+    {
+        uint32_t firstIndex = 32 * page;
+        for (uint32_t handlerIndex = firstIndex; (handlerIndex < firstIndex + 32) && (handlerIndex < COMMAND_HANDLER_COUNT); handlerIndex++)
+        {
+            int isHandlerAvailable = CommandHandlers[handlerIndex] != NULL;
+            command->registers[0] |= isHandlerAvailable << (handlerIndex - firstIndex);
+        }
+    }
+    else
+    {
+        /* Add extensions here */
+    }
+}
+
 static void kp_posix_exit(KPPosixState* state, KPPosixCommandBlock* command)
 {
     exit(command->registers[0]);
@@ -406,8 +430,8 @@ static void kp_posix_get_cmdline(KPPosixState* state, KPPosixCommandBlock* comma
     g_free(cmdline);
 }
 
-#define COMMAND_HANDLER_COUNT 32
 static KPPosixCommandHandler CommandHandlers[COMMAND_HANDLER_COUNT] = {
+    [0] = &kp_posix_capabilities,
     [1] = &kp_posix_exit,
     [2] = &kp_posix_debug_out,
     [3] = &kp_posix_open_file,

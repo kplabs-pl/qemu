@@ -40,8 +40,23 @@ inspect_return_values(block[1], block[2]);
 
 ## Operations
 
-### `0x00` - Get available operations
-TODO
+### `0x00` - Get capabilities
+Gets capabilities: available functions and their extensions.
+
+| Register | Input       | Output               |
+|----------|-------------|----------------------|
+| R0       | Page number | Capabilities bitmask |
+
+Pages 0-511 contain available functions. Each bit of the register R0 corresponds to the ID of the operation.
+
+For example:
+
+- page 0, bit 3 designates if `open file` (id `0x03`) function is available,
+- page 4, bit 0 designates if function with id `0x80` is available.
+
+Pages 512 and up contain information about extensions available.
+
+Currently no extensions are available.
 
 ### `0x01` - Exit
 Terminates QEMU process with specified error code. Write to Command Register will be the last instruction executed by guest CPU.
@@ -103,7 +118,7 @@ Writes buffer to file at current position and advances position by number of wri
 | R1       | Buffer address         | Number of bytes written    |
 | R2       | Buffer length in bytes | -                          |
 
-### `0x05` - Read fle
+### `0x05` - Read file
 Reads from file into buffer at current position and advances position by number of read bytes
 
 | Register | Input                  | Output                     |
