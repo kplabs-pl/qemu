@@ -2403,7 +2403,7 @@ static MemTxResult nvic_sysreg_write(void *opaque, hwaddr addr,
 
         for (i = 0; i < size && startvec + i < s->num_irq; i++) {
             if (attrs.secure || s->itns[startvec + i]) {
-                set_prio(s, startvec + i, false, (value >> (i * 8)) & 0xff);
+                set_prio(s, startvec + i, false, (value >> (i * 8)) & ~(0xff >> s->irq_prio_bits));
             }
         }
         nvic_irq_update(s);
@@ -2573,6 +2573,7 @@ static const VMStateDescription vmstate_nvic = {
 static Property props_nvic[] = {
     /* Number of external IRQ lines (so excluding the 16 internal exceptions) */
     DEFINE_PROP_UINT32("num-irq", NVICState, num_irq, 64),
+    DEFINE_PROP_UINT8("irq-prio-bits", NVICState, irq_prio_bits, 8),
     DEFINE_PROP_END_OF_LIST()
 };
 

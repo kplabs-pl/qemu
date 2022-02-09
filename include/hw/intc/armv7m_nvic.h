@@ -82,6 +82,7 @@ struct NVICState {
     MemoryRegion sysregmem;
 
     uint32_t num_irq;
+    uint8_t irq_prio_bits;
     qemu_irq excpout;
     qemu_irq sysresetreq;
 };

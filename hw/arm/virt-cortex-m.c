@@ -30,6 +30,7 @@ typedef struct  {
     int64_t flash_size_kb;
     int64_t freq_mhz;
     int64_t num_irq;
+    uint8_t irq_prio_bits;
     bool writable_code_memory;
 } VirtCortexMMachineState;
 
@@ -74,6 +75,7 @@ static void virt_cortex_m_init(MachineState *ms)
     nvic = qdev_new(TYPE_ARMV7M);
 
     qdev_prop_set_uint32(nvic, "num-irq", m->num_irq);
+    qdev_prop_set_uint8(nvic, "irq-prio-bits", m->irq_prio_bits);
     qdev_prop_set_string(nvic, "cpu-type", ms->cpu_type);
     qdev_prop_set_bit(nvic, "enable-bitband", true);
     object_property_set_link(OBJECT(nvic), "memory", OBJECT(get_system_memory()),
@@ -136,6 +138,18 @@ static void writable_code_memory_get(Object *obj, Visitor *v, const char *name, 
     visit_type_bool(v, name, &m->writable_code_memory, errp);
 }
 
+static void irq_prio_bits_set(Object *obj, Visitor *v, const char *name, void *opaque, Error **errp)
+{
+    VirtCortexMMachineState* m = VIRT_CORTEX_M_MACHINE(obj);
+    visit_type_uint8(v, name, &m->irq_prio_bits, errp);
+}
+
+static void irq_prio_bits_get(Object *obj, Visitor *v, const char *name, void *opaque, Error **errp)
+{
+    VirtCortexMMachineState* m = VIRT_CORTEX_M_MACHINE(obj);
+    visit_type_uint8(v, name, &m->irq_prio_bits, errp);
+}
+
 static void virt_cortex_m_class_init(ObjectClass *oc, void *data)
 {
     MachineClass *mc = MACHINE_CLASS(oc);
@@ -188,6 +202,18 @@ static void virt_cortex_m_class_init(ObjectClass *oc, void *data)
         oc, "writable-code-memory",
         "Flag indicating whether code memory is freely writable"
     );
+
+    object_class_property_add(
+        oc, "irq-prio-bits", "int",
+        &irq_prio_bits_get, &irq_prio_bits_set, NULL,
+        NULL
+    );
+
+    object_class_property_set_description(
+        oc, "irq-prio-bits",
+        "NVIC IRQ priority bits"
+    );
+
 }
 
 static void virt_cortex_m_instance_init(Object* obj)
@@ -196,6 +222,7 @@ static void virt_cortex_m_instance_init(Object* obj)
     m->flash_size_kb = 1 * 1024;
     m->freq_mhz = 50;
     m->num_irq = 64;
+    m->irq_prio_bits = 4;
     m->writable_code_memory = false;
 }
 
