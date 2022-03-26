@@ -10,6 +10,7 @@
 #include "qemu/log.h"
 #include "trace/trace-hw_kp.h"
 #include "chardev/char-fe.h"
+#include "hw/kp/posix-device.h"
 
 static int OpenModeMapping[12] = {
     O_RDONLY,
@@ -48,7 +49,6 @@ typedef struct KPPosixState {
     GuestFile fileDescriptors[MAX_FD_COUNT];
 } KPPosixState;
 
-#define TYPE_KP_POSIX "kp-posix"
 #define KP_POSIX(obj) OBJECT_CHECK(KPPosixState, (obj), \
                                          TYPE_KP_POSIX)
 
