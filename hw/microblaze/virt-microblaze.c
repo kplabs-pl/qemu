@@ -15,6 +15,7 @@ typedef struct {
     MachineState parent_obj;
 
     MicroBlazeCPU cpu;
+    uint32_t freq_mhz;
     uint64_t ram_base;
     uint64_t vectors_base;
     uint64_t intc_base;
@@ -73,7 +74,7 @@ static void virt_microblaze_init(MachineState *ms) {
     // create timer
     dev = qdev_new("xlnx.xps-timer");
     qdev_prop_set_uint32(dev, "one-timer-only", 0);
-    qdev_prop_set_uint32(dev, "clock-frequency", 100 * 1000000);
+    qdev_prop_set_uint32(dev, "clock-frequency", m->freq_mhz * 1000000);
     sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
     sysbus_mmio_map(SYS_BUS_DEVICE(dev), 0, m->timer_base);
     sysbus_connect_irq(SYS_BUS_DEVICE(dev), 0,
@@ -100,6 +101,18 @@ static void ram_base_get(Object *obj, Visitor *v, const char *name, void *opaque
 {
     VirtMicroblazeMachineState* m = VIRT_MICROBLAZE_MACHINE(obj);
     visit_type_uint64(v, name, &m->ram_base, errp);
+}
+
+static void freq_mhz_set(Object *obj, Visitor *v, const char *name, void *opaque, Error **errp)
+{
+    VirtMicroblazeMachineState* m = VIRT_MICROBLAZE_MACHINE(obj);
+    visit_type_uint32(v, name, &m->freq_mhz, errp);
+}
+
+static void freq_mhz_get(Object *obj, Visitor *v, const char *name, void *opaque, Error **errp)
+{
+    VirtMicroblazeMachineState* m = VIRT_MICROBLAZE_MACHINE(obj);
+    visit_type_uint32(v, name, &m->freq_mhz, errp);
 }
 
 static void vectors_base_set(Object *obj, Visitor *v, const char *name, void *opaque, Error **errp)
@@ -156,6 +169,17 @@ static void virt_microblaze_class_init(ObjectClass *oc, void *data)
     MachineClass *mc = MACHINE_CLASS(oc);
     mc->desc = "Virtual Microblaze";
     mc->init = virt_microblaze_init;
+
+    object_class_property_add(
+        oc, "freq-mhz", "int",
+        &freq_mhz_get, &freq_mhz_set, NULL,
+        NULL
+    );
+
+    object_class_property_set_description(
+        oc, "freq-mhz",
+        "Reference frequency in MHz"
+    );
 
     object_class_property_add(
         oc, "ram-base", "int",
@@ -216,6 +240,7 @@ static void virt_microblaze_class_init(ObjectClass *oc, void *data)
 static void virt_microblaze_instance_init(Object* obj)
 {
     VirtMicroblazeMachineState* m = VIRT_MICROBLAZE_MACHINE(obj);
+    m->freq_mhz = 100;
     m->ram_base = 0x00000000;
     m->vectors_base = UINT64_MAX;
     m->intc_base = 0x80000000;
