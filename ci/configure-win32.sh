@@ -29,3 +29,5 @@ $BASE/configure \
     --disable-replication \
     --disable-parallels \
     --disable-crypto-afalg \
+    --enable-strip \
+
